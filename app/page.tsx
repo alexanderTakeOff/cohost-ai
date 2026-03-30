@@ -7,11 +7,13 @@ import { createClient } from "@/lib/supabase/server";
 export default async function Home() {
   const isSupabaseConfigured = hasSupabaseEnv();
   let userEmail: string | null = null;
+  let isEmailConfirmed = false;
 
   if (isSupabaseConfigured) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getUser();
     userEmail = data.user?.email ?? null;
+    isEmailConfirmed = Boolean(data.user?.email_confirmed_at);
   }
 
   return (
@@ -34,6 +36,25 @@ export default async function Home() {
             <p className="text-sm">
               Logged in as <span className="font-medium">{userEmail}</span>
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/onboarding"
+                className="inline-flex rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
+              >
+                Onboarding
+              </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex rounded-md border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/25"
+              >
+                Dashboard
+              </Link>
+            </div>
+            {!isEmailConfirmed ? (
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Your email may need confirmation in Supabase Auth settings before full access.
+              </p>
+            ) : null}
             <form action={signOut}>
               <button
                 type="submit"

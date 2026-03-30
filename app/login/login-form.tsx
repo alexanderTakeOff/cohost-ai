@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -11,10 +11,12 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<"error" | "success" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function signIn() {
     if (!email || !password) {
+      setMessageType("error");
       setMessage("Email and password are required.");
       return;
     }
@@ -30,6 +32,7 @@ export function LoginForm() {
     setIsSubmitting(false);
 
     if (error) {
+      setMessageType("error");
       setMessage(error.message);
       return;
     }
@@ -40,6 +43,7 @@ export function LoginForm() {
 
   async function signUp() {
     if (!email || !password) {
+      setMessageType("error");
       setMessage("Email and password are required.");
       return;
     }
@@ -55,13 +59,32 @@ export function LoginForm() {
     setIsSubmitting(false);
 
     if (error) {
+      setMessageType("error");
       setMessage(error.message);
       return;
     }
 
+    setMessageType("success");
     setMessage(
-      "Sign-up successful. Check your email to confirm the account, then sign in.",
+      "Sign-up request sent. If email confirmation is enabled in Supabase, confirm via email, then sign in.",
     );
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nativeEvent = event.nativeEvent;
+    const submitter =
+      "submitter" in nativeEvent
+        ? (nativeEvent.submitter as HTMLButtonElement | null)
+        : null;
+    const intent = submitter?.value;
+
+    if (intent === "signup") {
+      await signUp();
+      return;
+    }
+
+    await signIn();
   }
 
   return (
@@ -73,12 +96,7 @@ export function LoginForm() {
         </p>
       </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-        }}
-        className="space-y-4"
-      >
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-medium">
             Email
@@ -115,16 +133,16 @@ export function LoginForm() {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
-            type="button"
-            onClick={signIn}
+            type="submit"
+            value="signin"
             className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Please wait..." : "Sign in"}
           </button>
           <button
-            type="button"
-            onClick={signUp}
+            type="submit"
+            value="signup"
             className="rounded-md border border-black/20 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25"
             disabled={isSubmitting}
           >
@@ -133,7 +151,15 @@ export function LoginForm() {
         </div>
 
         {message ? (
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">{message}</p>
+          <p
+            className={
+              messageType === "error"
+                ? "text-sm text-red-600 dark:text-red-400"
+                : "text-sm text-emerald-700 dark:text-emerald-300"
+            }
+          >
+            {message}
+          </p>
         ) : null}
       </form>
     </div>
