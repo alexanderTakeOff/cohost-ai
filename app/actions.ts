@@ -37,6 +37,7 @@ export async function saveOnboarding(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  void _prevState;
   try {
     const hostifyApiKey = getFormValue(formData, "hostifyApiKey");
     const telegramChatId = getFormValue(formData, "telegramChatId");
@@ -87,6 +88,7 @@ export async function saveOnboarding(
 }
 
 export async function syncTenantToN8n(_prevState: ActionResult): Promise<ActionResult> {
+  void _prevState;
   try {
     if (!hasN8nEnv()) {
       return {
@@ -127,5 +129,3 @@ export async function syncTenantToN8n(_prevState: ActionResult): Promise<ActionR
     };
   }
 }
-
-export type { ActionResult };
