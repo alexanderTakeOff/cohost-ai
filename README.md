@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app), with Supabase authentication and a Cohost AI MVP control surface.
 
 ## Getting Started
 
@@ -14,9 +14,51 @@ pnpm dev
 bun dev
 ```
 
+Before running locally, create `.env.local` from `.env.example`:
+
+```bash
+cp .env.example .env.local
+```
+
+Then fill in:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `HOSTIFY_KEY_ENCRYPTION_SECRET`
+- `N8N_WEBHOOK_URL`
+- `N8N_WEBHOOK_SECRET`
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Auth and MVP pages:
+
+- `/login` - sign in / sign up with email and password
+- `/onboarding` - connect Hostify key, Telegram chat id, and select mode
+- `/dashboard` - status/mode/metrics with manual sync-to-n8n action
+- `/` - simple entry page with links after sign-in
+
+## Supabase schema setup
+
+Run the SQL from `supabase/schema.sql` in Supabase SQL editor to create:
+
+- `tenants` table
+- `tenant_events` table
+- RLS policies and indexes
+
+## n8n contract
+
+Outbound sync to n8n is signed with:
+
+- `x-cohost-signature` (HMAC SHA256 over `timestamp.body`)
+- `x-cohost-timestamp`
+- `x-cohost-idempotency-key`
+
+n8n can post events back to:
+
+- `POST /api/n8n/tenant-events`
+
+with the same signature header format.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
