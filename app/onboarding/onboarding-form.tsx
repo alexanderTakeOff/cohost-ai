@@ -50,7 +50,7 @@ export function OnboardingForm({ tenant }: { tenant: TenantRecord | null }) {
           name="telegramChatId"
           type="text"
           required
-          pattern="-?\\d{5,}"
+          inputMode="numeric"
           defaultValue={tenant?.telegram_chat_id ?? ""}
           placeholder="e.g. 123456789"
           className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
