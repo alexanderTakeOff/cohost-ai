@@ -13,6 +13,7 @@ import {
   upsertTenantForCurrentUser,
 } from "@/lib/tenant/server";
 import type { TenantMode } from "@/lib/tenant/types";
+import { isLikelyTelegramChatId } from "@/lib/tenant/validators";
 
 export async function signOut() {
   if (hasSupabaseEnv()) {
@@ -46,6 +47,13 @@ export async function saveOnboarding(
     if (!telegramChatId) {
       return {
         error: "Telegram chat id is required.",
+        success: null,
+      };
+    }
+
+    if (!isLikelyTelegramChatId(telegramChatId)) {
+      return {
+        error: "Telegram chat id must be numeric (example: -1001234567890).",
         success: null,
       };
     }
