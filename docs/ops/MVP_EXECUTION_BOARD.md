@@ -15,7 +15,7 @@ Source of Truth: This file is the canonical execution tracker for MVP operations
 | ID | Task | Status | Acceptance Criteria | Risk | Owner | Evidence / Notes |
 |---|---|---|---|---|---|---|
 | A1 | Remove hardcoded Hostify API keys in n8n HTTP nodes | PLANNED | No `x-api-key` literal values remain in runtime Hostify nodes; values come from centralized config/variable | Medium | Team | Approved by product owner; next implementation chunk |
-| A2 | Improve Telegram error alerts with full execution context | PLANNED | Error alert contains `workflow_name`, `workflow_id`, `execution_id`, `failed_node_name`, `error_message`, `tenant_id` (if available), and timestamp | Low | Team | Approved by product owner; next implementation chunk |
+| A2 | Improve Telegram error alerts with full execution context | IN_PROGRESS | Error alert contains `workflow_name`, `workflow_id`, `execution_id`, `failed_node_name`, `error_message`, `tenant_id` (if available), and timestamp | Low | Team | A2 patch artifact prepared: `docs/ops/n8n/cohost-tenant-sync.A2-error-alert.json` + apply guide |
 | A3 | Protect webhook nodes from accidental edits | IN_PROGRESS | Webhook nodes listed in protected inventory; runbook explicitly forbids changing `path`/`webhookId` without ADR | Low | Team | Policy captured in `N8N_RUNBOOK.md` + `N8N_PROTECTED_NODES.md` |
 | A4 | Align runtime Hostify calls with tenant-specific config | PLANNED | Runtime flow resolves tenant config before Hostify calls (no static key path) | High | Team | Depends on A1 design choice |
 | A5 | Standardize event taxonomy (`guest_message`, `ai_reply`, `n8n_sync_ok/error`) | PLANNED | Dashboard metrics and n8n callbacks use consistent event types | Medium | Team | Required for trustworthy metrics |

@@ -33,3 +33,18 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - `eventType: n8n_sync_ok`
 - Rollback reference:
   - Revert `Process_Tenant_Sync` code to previous saved revision in n8n history if needed.
+
+- Date (UTC): 2026-04-01
+- Operator: Cursor
+- Workflow: `cohost-tenant-sync`
+- Node(s): `Error Trigger`, `Build_Error_Alert_Context` (new), `Error` (Telegram)
+- Change summary:
+  - Prepared A2 patch artifact to enrich error alerts with workflow/execution/node identifiers and contextual IDs.
+  - Added import-ready workflow patch JSON and minimal apply guide.
+- Reason:
+  - Improve incident triage when multiple workflows/tenants are active.
+- Verification:
+  - Patch artifact generated at `docs/ops/n8n/cohost-tenant-sync.A2-error-alert.json`
+  - Apply guide created at `docs/ops/n8n/A2_APPLY_GUIDE.md`
+- Rollback reference:
+  - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
