@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 
 import { hasN8nEnv } from "@/lib/n8n/env";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 import {
-  getCurrentUserId,
   getMaskedHostifyKey,
   getTenantForCurrentUser,
 } from "@/lib/tenant/server";
@@ -24,8 +24,11 @@ export default async function OnboardingPage() {
     );
   }
 
-  const userId = await getCurrentUserId();
-  if (!userId) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     redirect("/login");
   }
 
@@ -42,6 +45,10 @@ export default async function OnboardingPage() {
             Connect Hostify and Telegram, then choose assistant mode.
           </p>
         </header>
+
+        <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          Signed in as: {user.email ?? "Unknown user"}
+        </div>
 
         {maskedKey ? (
           <p className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">

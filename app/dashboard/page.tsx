@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { hasN8nEnv } from "@/lib/n8n/env";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 import {
-  getCurrentUserId,
   getMaskedHostifyKey,
   getTenantForCurrentUser,
   getTenantMetrics,
 } from "@/lib/tenant/server";
-
-import { SyncButton } from "./sync-button";
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -34,8 +31,11 @@ export default async function DashboardPage() {
     );
   }
 
-  const userId = await getCurrentUserId();
-  if (!userId) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     redirect("/login");
   }
 
@@ -58,6 +58,10 @@ export default async function DashboardPage() {
           </p>
         </header>
 
+        <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          Signed in as: {user.email ?? "Unknown user"}
+        </div>
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Stat title="Assistant status" value={tenant.is_active ? "ON" : "OFF"} />
           <Stat title="Mode" value={tenant.mode === "autopilot" ? "Autopilot" : "Draft"} />
@@ -74,21 +78,16 @@ export default async function DashboardPage() {
           Hostify key: {maskedKey ?? "Not set"}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            href="/onboarding"
-            className="inline-flex rounded-md border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/25"
-          >
-            Edit onboarding
-          </Link>
-          {hasN8nEnv() ? (
-            <SyncButton />
-          ) : (
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              n8n sync is disabled: set N8N_WEBHOOK_URL and N8N_WEBHOOK_SECRET.
-            </p>
-          )}
+        <div className="rounded-md border border-black/10 p-4 text-xs text-zinc-600 dark:border-white/15 dark:text-zinc-400">
+          Last settings update: {formatDate(tenant.updated_at)}
         </div>
+
+        <Link
+          href="/onboarding"
+          className="inline-flex rounded-md border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/25"
+        >
+          Open onboarding
+        </Link>
       </section>
     </main>
   );
