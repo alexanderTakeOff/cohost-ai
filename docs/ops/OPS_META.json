@@ -1,0 +1,19 @@
+{
+  "ops_version": "1.0.0",
+  "last_policy_update_utc": "2026-04-01T00:00:00Z",
+  "always_read": [
+    "docs/ops/AGENT_PREFLIGHT.md",
+    "docs/ops/OPS_META.json"
+  ],
+  "full_read_conditions": [
+    "utc_date_changed",
+    "ops_version_changed",
+    "task_touches_n8n_or_secrets_or_incidents"
+  ],
+  "full_ops_docs": [
+    "docs/ops/MVP_EXECUTION_BOARD.md",
+    "docs/ops/N8N_RUNBOOK.md",
+    "docs/ops/N8N_PROTECTED_NODES.md",
+    "docs/ops/CHANGELOG_N8N.md"
+  ]
+}
