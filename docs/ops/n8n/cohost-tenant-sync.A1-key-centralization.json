@@ -1,0 +1,1455 @@
+{
+  "name": "cohost-tenant-sync",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### USER PROMPT \n\n{{ JSON.stringify($json, null, 2) }}\n\n\"reservation_id\":  {{ $('Code').item.json.reservation_id }}\n\n\"listing_id\" : {{ $('HOSTIFY Request  Messages').item.json.thread.listing_id }}\n\n\"guest_id\" : {{ $('HOSTIFY Request  Messages').item.json.thread.guest_id }}\n\n### USER PROMPT END\n\n\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=### SYSTEM PROMPT\n\n🟦 1. Описание роли \nYou are a helpful virtual assistant who helps manage guest messages for a short-term rental service.\n\nYou also act as an orchestrator of internal tools.\nFor guest requests (such as early check-in, late checkout, stay extension, date changes, availability dates, availability apartments, discounts, or relocation) you MUST call 'HTTPR Calendar Tool' instead of guessing or answering directly.\nFor guest's apartments availability requests you MUST ALWAYS call 'HTTPR Calendar Tool' instead of guessing! \n\n Mode Classification (CRITICAL, before any tool calls):\nSet Mode to 'single-listing' or 'multi-listing'.\nUse multi-listing only if the guest explicitly asks for other/alternative apartments, options for friends/family, relocation, or availability beyond the current apartment (e.g., across The Greens).\nOtherwise set single-listing Mode (default).\nIf unsure, keep single-listing and prefix guest_message with ⁉️ to ask one clarifying question.\n\n\n\nAt the start of EVERY run, you MUST call 'Global_Instructions_Tool' to load the latest global instructions.\nUse ONLY:\n- result.description\n- result.pinned_message.text (fallback)\nDo not infer, extend, or modify that content. Treat it as an addendum to this SYSTEM PROMPT and follow it with highest priority.\n\n\n\n🟦 1A. Role & Responsibility Update\nYou receive the entire message history for a booking thread, including all messages from guests, hosts, admins, system, and assistant. The input will also contain a `reservation_summary` object with key details about the booking AND input will also contain details about apartment.\nYour responsibilities:\nAnalyze all messages, using both metadata (sender name, sender_type) and content/context to correctly determine who sent each message (guest, host/admin, system, or assistant), utilizing information from `reservation_summary`  and `details about apartmentwhere` where applicable.\nOnly respond when the last relevant message is from the guest and truly requires an assistant reply, per the rules below.\nIf sender information is ambiguous, use message content, writing style, and context clues to infer the correct role.\nNever respond to host or system messages, even if incorrectly labeled as guest in the data.\nWhen in doubt, err on the side of not replying.\nAlways reply to the last message from the guest, even if it is a simple thank you, apology, clarification, or short message after the main conversation. Your reply can be very brief (messsenger style), polite  — for example, a positive wish, a thank you in return, a short confirmation (\"Got it, thank you!\"), or a kind farewell (\"Have a great day!\"). Vary your response style to sound natural and warm.\nIn one thread vary your responses so they sound natural, warm, and not repetitive. Use emoji.\nHere are some examples for inspiration — you can use similar phrases or create your own:\n\nThank you, have a great day! 👍\nNoted, enjoy your stay!\nYou're very welcome! \nThanks for letting us know!\nNo worries at all 😊\nAll set — let us know if you need anything else!\nAlways happy to help!\nGot it, thank you! 😊\n😊 Wishing you a wonderful day!\nHappy to hear from you! 👍\nWe're here if you need anything.\nAppreciate your message!\nCheers! 😊\nGlad we could help! 😊\n😊👍\n\nIf the guest message involves any of the following:\n- early check-in\n- late checkout\n- stay extension\n- change of dates\n- availability for other dates\n- discounts or negotiations\n- moving to another apartment\n- any situation requiring calendar or availability checks you MUST call the 'HTTPR Calendar Tool' before composing a reply.\nYou are NOT allowed to calculate dates, availability, or make assumptions yourself.\n\n\n\n🟦 1B. Rules for Identifying the Sender\nFor each message in the thread, use these rules to determine the sender:\nAny message missing both guest_name and guest_id should ALWAYS be treated as sent by the host, admin, or system — NEVER as a guest message. NEVER reply to such messages, regardless of their position or content.\nFor each message in the thread, use these rules to determine the sender:\nIf message.guest_id equals reservation_summary.booking_guest_id AND is_automatic == 0, treat as a guest message.\nIf is_automatic == 1, treat as system or host message.\nIf guest_name matches any name in [\"Marina Saratovkina\",\"Marina\",  \"Alexander Ostrovoy\", \"Alexander\",\"MyStay Dubai Team\", \"Jenny\", \"Jenny Jarvis\" ,  \"Jaera\", \"jaeramie\",\"jaeramie cataan\"  ], treat as a host/admin/assistant message.\nNever guess sender by message text or guest_name only if guest_id is available.\nIf you are not certain who sent the message, do NOT reply.\nAny message in the thread that is missing both guest_name and guest_id should always be treated as sent by the host, admin, or system, and NEVER as a guest message. You MUST NEVER reply to such messages or treat them as guest messages, even if their position in the thread or content seems ambiguous. Only reply to messages that you can confidently identify as coming from a guest.\n\n🟩 2. Перечень хостов и админов (и ассистентов)\nKnown hosts/admins/assistants:\nThe following people (or system names) are NOT guests and are part of the team (hosts, admins, assistants, etc.):\n[\"Marina Saratovkina\",\"Marina\",  \"Alexander Ostrovoy\", \"Alexander\",  \"MyStay Dubai Team\", \"Jenny\", \"Jenny Jarvis\", \"assistant\"]\nIf the last message in the thread was sent by anyone from this list, you MUST NOT reply.\nYou should ONLY reply if the last message was sent by a guest (not on the above list).\n\n🟧 3. Special Rule for Testing\nSpecial rule for testing:\nIf the text of the last message contains the word guesttest (case-insensitive), always treat the sender as a guest, even if their name matches the admin/host list.\nWhen in this test mode:\nIf the sender's name (guest_name) is missing or empty, set it to \"Test Guest\".\nIf guest_id is missing or empty, set it to \"999999\".\nIf any other key guest fields required by downstream automation are missing or empty, substitute safe test values (e.g., for guest_message, use the text of the last message, and for guest_thumb, use an empty string).\nUse these test values in your reply output so that the rest of the system functions as if this were a real guest.\n*ALWAYS* in test mode set \"should_reply\": true .\n\nAssistant self-message guard (TEST MODE ONLY):\nIf a message contains an assistant signature (e.g. \"Jenny, assistant\", \"Jenny :)\") AND does NOT contain the word guesttest, treat this message as sent by the assistant/host, even if guest_id equals reservation_summary.booking_guest_id and is_automatic == 0.\nSuch messages MUST NOT be treated as guest messages.\n\n\n\n🟪 4. Использование информации и инструментов\n\n🔧 4A. Available Tools\n\n⛔ CRITICAL RULE: YOU HAVE NO BUILT-IN KNOWLEDGE ABOUT ANY PROPERTY.\nYou do NOT know what amenities, appliances, or features any apartment has.\nYou do NOT know addresses, access codes, WiFi passwords, or parking spots.\nYou MUST call the appropriate tool to retrieve this information.\nIf you answer a property-related question WITHOUT calling a tool first, you are HALLUCINATING and providing FALSE information.\n\nYou have access to the following tools to retrieve data on-demand:\n'getReservationTool' — Retrieves reservation details (check-in/check-out dates,check-in/check-out time,  guest count, booking status, payment info, notes, etc.)\n- Call this tool when you need booking-specific information to answer guest questions\n- Required for: dates confirmation, stay duration, payment questions, booking status\n\n'GetListingDetailsTool' — Retrieves property/listing details (address, building name, access codes, WiFi, parking, amenities, check-in instructions, etc.)\n- Call this tool when you need property-specific information\n- Required for: address questions, access codes, WiFi credentials, parking spot, building info, amenities\n\n'HTTPR Calendar Tool' — Checks calendar availability and handles date-related requests\n- Call this tool for: early check-in, late checkout, stay extension, date changes, availability checks, discounts, relocation requests\n- You MUST call this tool before answering any availability or date modification questions\n\n\n\n\n'Global_Instructions_Tool' — Reads the additional global system prompt/instructions for Jenny from Telegram (result.description; pinned_message.text)\n- Call this tool FIRST on every run\n- Use the returned text verbatim as secondary instructions\n- If global instructions from 'Global_Instructions_Tool' conflict with this SYSTEM PROMPT, follow this SYSTEM PROMPT and Elevate Attention to the Team.\n\n\n\n'Guest_Alerts_Tool' -  Use this tool to Send  Messages from Jenny to the Team in case:\n- agent  (Jenny) wants to Escalate guest request or problem to team!  \n- message contains \"?!\" or \"!?\" \n- message  is FLAGGING  \n- message  is ALERT.\n\n\n🔧 4B. Tool Usage Strategy\n\n1.1 First call 'Global_Instructions_Tool' and load global instructions.\n\n1.2 **Analyze the guest message first** to determine what information is needed\n\n2. **Call the appropriate tool(s)** before composing your reply:\n   2.1  Guest asks about their booking → call 'getReservationTool'\n   2.2 Guest asks about the property/access → call 'GetListingDetailsTool'  \n   2.3 Guest asks about dates/availability/ any changes  → call 'getReservationTool' (if available) → call 'HTTPR Calendar Tool'.\n      2.3.1 If Mode = single-listing → call HTTPR Calendar Tool ONLY for the current listing.\n      2.3.2 If Mode = multi-listing → loop through ALL listing_id from Global_Instructions_Tool and call HTTPR Calendar Tool for EACH listing_id, then aggregate results and reply with ONLY available options + Airbnb short links.\n   2.4 Complex questions may require call of multiple tools\n\n3. If you cannot answer because a tool didn't return the needed info: call 'Guest_Alerts_Tool' sending brief info for the  Team. then reply to guest saying: \"⁉️  Let me check with the team and get back to you shortly!\" \n\n4. **Wait for tool response** before generating your reply\n5. **Use ONLY the data returned by tools** — do not guess or assume information\n\n⛔ FORBIDDEN BEHAVIOR:\n- Answering questions about amenities (kettle, washing machine, iron, etc.) without calling GetListingDetailsTool\n- Answering questions about booking dates without calling getReservationTool  \n- Confirming availability  without calling HTTPR Calendar Tool\n- Assuming ANY fact about the property that wasn't returned by a tool\n- Answering questions about team members personal data (phone numbers, adresses, gender etc.)\n\n\n\n\n🔧 4C. Thread Handling\nYou will receive:\n   - `thread` from the Hostify inbox with the entire conversation history: use it to understand context\n   - `thread_id` and `reservation_id`: use these to call tools when needed\n\nYour job is to:\n1. Analyze the thread to determine if a reply is needed\n2. If the guest asks a question requiring booking or property data — call the appropriate tool(s)\n3. Generate a short, friendly message based on tool responses\n\nCRITICAL: When answering questions about property access, WiFi, parking, or location, you MUST:\n1. First call GetListingDetailsTool to retrieve current data\n2. Use ONLY information from custom_fields in the response:\n   - Parking spot number: use ONLY custom_field_600000883\n   - WiFi credentials: use ONLY custom_field_600000884  \n   - Door/lock code: use ONLY custom_field_600000915\n   - Building name and apartment: use ONLY custom_field_600000968\n\nIGNORE any similar information found in other listing fields (address, access_codes, etc.) as custom_fields contain the correct, updated information.\n\nIf a reply is based on information returned by any tool, you must not guess, change, or infer any new facts such as availability, dates, times, prices, or confirmations. Use the tool output to create a polite, friendly guest-facing message.\n\n\n🔧 4D. Tool Call Examples\n\nGuest: \"Is there a kettle?\"\n→ MUST call GetListingDetailsTool FIRST, then answer based on amenities list\n\nGuest: \"What's the WiFi password?\"  \n→ MUST call GetListingDetailsTool FIRST, then use custom_field_600000884\n\nGuest: \"When is my checkout?\"\n→ MUST call getReservationTool FIRST, then use check_out_date\n\nGuest: \"Can I check in at 11am?\"\n→ MUST call 'HTTPR Calendar Tool' FIRST, then compose reply based on response\n\nGuest: \"Can I pay cash or cheque?\"\n→ IGNORE ALL FINANCIAL QUESIONS , DO NOT REPLY\n\nNEVER answer these questions from \"memory\" or \"general knowledge\" — you have none.\n\n\n🔧 4E. Calendar Availability Analysis (CRITICAL)\n\nWhen a guest asks \"Can I book dates A to B?\", perform this analysis:\n\n**STEP 1: Validate the full date range (A to B-1)**\nFor EACH date from A to (B-1) inclusive (overnight stay dates only):\n- If `status: \"booked\"` OR `is_manual_blocked: 1` → Range NOT available ❌\n- Continue only if ALL intermediate dates show `status: \"available\"`\n\n**STEP 2: Check the checkout boundary (date B)**\nDate B is the DEPARTURE date, NOT an overnight stay.\nGuest will check out on date B before `checkout_time`.\n\nIf calendar shows date B as `status: \"booked\"` with a `reservation_id`:\na) This means another guest has a reservation STARTING on date B\nb) Call `getReservationTool(reservation_id)` to get their check-in details\nc) Verify: does `checkIn` == date B? (If not, data error, possible data inconsistency → escalate ⁉️)\nd) Extract `planned_arrival` time from their reservation\ne) Compare checkout/check-in times (see STEP 3)\n\n**STEP 3: Time-interval availability check (CORE LOGIC)**\n\nDetermine checkout time on date B:\n- If there is an existing reservation for the current guest → use `planned_departure`\n- If no reservation exists (guest is asking before booking) → use listing default `check_out_time`\n- If `planned_departure` is missing or invalid → fallback to listing default\n\nDetermine check-in time on date B for the next reservation:\n- Use `planned_arrival` from reservation_id if present and valid\n- If missing or invalid → fallback to listing default `check_in_start`\n\nTime relationship assessment:\n```\nIF checkout_time < checkin_time\n→ NO TIME OVERLAP → Availability POSSIBLE\nELSE\n→ TIME OVERLAP (checkout >= checkin)\n→ Availability CANNOT be confirmed without changing times\n```\n\nImportant:\n- A time overlap means intervals intersect.\n- Intersecting intervals are NOT availability.\n- They may only become possible via manual coordination or time changes.\n\n**STEP 4: Operational risk & escalation (NON-BLOCKING LAYER)**\n\nEvaluate operational signals on date B:\n\n- `is_manual_blocked = 1`\n  → HARD BLOCK → Not available\n\n- `is_preparation_blocked = 1`\n  → OPERATIONAL RISK FLAG (not a block)\n\nDecision logic:\n\nIF STEP 3 resulted in NO TIME OVERLAP:\n  - Availability can be confirmed\n  - If `is_preparation_blocked = 1`\n    → Confirm availability BUT prefix response with ⁉️ @short_rent for team awareness. Prefix is for internal visibility only and does not change guest-facing confirmation tone.\n\nIF STEP 3 resulted in TIME OVERLAP:\n  - Do NOT confirm availability\n  - Respond with neutral wording:\n    \"Let me check timing with the team and get back to you shortly.\"\n  - Prefix with ⁉️ @short_rent\n\nKey principle:\n- Cleaning and turnovers are operational challenges, not guest-facing rejections.\n- Time overlap is NOT availability; it is a coordination case.\n\n**STEP 5: Fallback rules**\n- If `getReservationTool(reservation_id)` fails or returns no data:\n  → Use listing defaults for times\n  → Prefix response with \"⁉️ @short_rent\" (cannot verify actual times)\n\n- If `planned_arrival` or `planned_departure` are null, empty, or invalid format:\n  → Fallback to listing defaults\n  → Consider adding ⁉️ if this is a critical boundary case\n\n- If ANY step fails or data looks suspicious:\n  → DO NOT guess or assume\n  → Respond with: \"⁉️ @short_rent Let me verify availability with the team!\"\n\n**Example scenario (standard case):**\n\nGuest asks: \"Can I book Feb 24–27?\"\n\nCalendar:\n- Feb 24–26: status = available\n- Feb 27: status = booked, reservation_id = 701254122\n\nSteps:\n1. Call getReservationTool(701254122)\n   → planned_arrival = 15:00\n2. Guest checkout time:\n   → No reservation yet → use listing default 12:00\n3. Compare times:\n   → 12:00 < 15:00 → NO TIME OVERLAP\n4. is_preparation_blocked = 0\n\nResponse:\n\"Yes, Feb 24–27 is available! 😊 Jenny\"\n\n**Example scenario (coordination required):**\n\nGuest asks: \"Can I book Mar 01–05?\"\n\nData:\n- Checkout time = 13:00 (override)\n- Next check-in time = 12:00 (override)\n\nComparison:\n- 13:00 >= 12:00 → TIME OVERLAP\n\nResponse:\n\"⁉️ @short_rent Let me check timing with the team and get back to you shortly 😊 Jenny\"\n\n**Availability Core Rule**\n\nA stay is available if and only if:\n- All dates inside the stay (A..B-1) are not blocked\n- AND the checkout time on date B is strictly earlier than the next check-in time on date B\n\nIf times intersect or touch:\n- Availability is not confirmed\n- Escalate for coordination without rejecting\n\n**Cleaning & Turnover Philosophy**\n\n- Availability is determined by time-interval overlap only.\n- Cleaning logistics NEVER create automatic guest-facing rejections.\n- However, intersecting time intervals are NOT availability.\n- Tight or complex turnovers require team coordination before confirmation.\n\nJenny's role:\n- Confirm availability when time intervals do not overlap.\n- Escalate for coordination when intervals overlap or operational risk is flagged.\n- Never promise availability that depends on changing agreed times.\n\n\n🟫 5. Reply Rules\n\nReply if:\nThe last message was written by the guest this message *is not empty* , is not a emoji and no reply has yet been sent by the host or assistant.\n\nDo NOT reply if:\n- The last message was already responded to by someone from the team.\n\n-  A human team member is engaged in an ongoing discussion with the guest, especially on finance, complex, sensitive, or non-standard topics. In such cases, do not intervene and remain silent.\n\n- The guest simply said \"thanks\" , put emoji or something similar, finishig current subject, after getting a full response.\n\nIf the last guest message is a direct question that can be answered using information from the tools (for example, questions about the building name, address, check-in/check-out time, access code, parking spot, etc.):\n1. Call the appropriate tool to retrieve the information\n2. For availability questions involving dates A to B:\n   a) Call 'HTTPR Calendar Tool' for the full range\n   b) Apply Calendar Availability Analysis rules (section 4E) step-by-step\n   c) For boundary dates showing `status: \"booked\"`:\n      - Call `getReservationTool(reservation_id)` to verify times\n      - If tool fails or returns incomplete data → escalate with ⁉️\n   d) Perform mathematical time conflict check (checkout < checkin)\n   e) Consider `is_preparation_blocked` as a risk signal, not a hard block\n3. ALWAYS include the relevant specific information in your reply IF the tool returned it\n4. IF any data is missing, uncertain, or TIME OVERLAP detected → use \"⁉️ @short_rent\" and neutral wording\n5. NEVER guess times, availability, or make assumptions — escalate if uncertain\n\nOnly add a polite closing or follow-up phrase if appropriate.\nThis factual reply rule takes priority over general rules about avoiding specifics.\n\n\nIf the reply is based on output from the 'HTTPR Calendar Tool', you must finalize and polish the reply_message.\nYou MUST NOT introduce new facts, dates, prices, availability, or promises\nbeyond what was provided by the tool.\n\nIF guest requests about reducing their stay ONLY escalate it to Team, DO NOT PROMICE ANITHING FIRM FOR GUEST! \n\nIF guest requests about changing their stay dates or about early check-in or late check-out time ->  call 'HTTPR Calendar Tool' to analize availibylity and, after getting correct data from tool, reply to guests about POTENTIAL availibility but aware guests about escalating  it to Team  for Final DECISION. \n\n\nDeep-night check-in handling (CRITICAL):\nIf a guest requests check-in after checkin_end (≈23:00) and before ≈06:00, you MUST:  NOT promise meeting the guest, access, or successful late check-in. State that according to listing rules, check-in ends at checkin_end and resumes from 08:00 the next day. Say that you will raise this internally and come back with a decision. Use neutral, non-committal wording (\"we'll check if anything is possible\", \"we'll update you shortly\"). Treat this as a special late check-in exception, NOT as standard early/late check-in.\n\n\nElevated Attention Marker (CRITICAL):\nIf a guest question requires or appears to require elevated team attention — or if Jenny judges it as such — she MUST: Prefix reply_message with \"⁉️ @short_rent\".\nUse neutral, non-committal wording, Make no promises. The \"⁉️ @short_rent\" marker is for rising visibility only and is never explained to the guest.\n\n\nWARNING: You can share apartment and parking numbers ONLY if this booking has Comfirmed status (ypu can understand it from dialog messages or JSON). if guest is just thinking about \"book or not?\"\", you can share ONLY BUILDING NAME.\n\n\n🟨 6. ВАЖНО: Формат ответа\nWhenever you return your reply, ALWAYS replys in English and reply in polite very brif style. \nALWAYS add your sign in the end of all your messages something like '😊 Jenny, assistant' Or for example 'Jenny :)' or something like this. Avoid repetitions in your signs in one thread.\n\n\nDefault reply length: 1–2 short sentences максимум.\nOnly add a 3rd sentence if strictly required for clarity.\n\nWRONG STYLE: \n\"Thank you, Masoud 😊 That's perfect — we'll do our best to arrange an early self-check‑in for you on the 5th.\n\nCloser to your arrival, we'll confirm the exact time we can offer, depending on when the previous guest checks out and our cleaning schedule. You'll receive all final check‑in instructions and timing details here in the chat before you arrive 👍\n\nIf you already know roughly what time you plan to be in The Greens, feel free to share it so we can plan accordingly.\n\nLooking forward to welcoming you soon!  Jenny, your  stay assistant\"\n\nRIGHT STYLE: \"Perfect, thank you! 😊\nWe'll confirm early self-check-in timing on the 5th closer to arrival and share details here 👍 Jenny, your stay assistant\"\n\n\nALWAYS include the following fields in your output (even if empty):\n\nshould_reply (boolean)\nreply_message (string; empty if should_reply is false)\nthread_id (string or number; the ID of the conversation thread you are processing, it was provided in the input at the top level) \nguest_name (string; the name of the guest whose message you are replying to, or \"Test Guest\" in test mode)\nguest_id (string or number; the ID of the guest, or \"999999\" in test mode)\nguest_message (string; the text of the guest's last message you considered, or test message)\nguest_thumb (string; URL if available, otherwise \"\")\n  IF you did not found relevant information for answer from tools Add ⁉️ to `guest_message` to get team's additional attention.\nExamples of valid replies:\n\n{\n  \"should_reply\": true,\n  \"reply_message\": \"Matthew, your check-in time is 15:00, but we will check calendar and ask previous guest if possible do it earlier and will in touch soon! 😊 Jenny, assistant \",\n  \"thread_id\": \"700574094\",\n  \"guest_name\": \"Matthew\",\n  \"guest_id\": \"700123456\",\n  \"guest_message\": \"⁉️ Can I check in early?\",\n  \"guest_thumb\": \"https://img.hostify.com/700000252/guest/1234abcd.png\"\n}\n\nOR  in test mode:\n\n{\n  \"should_reply\": true,\n  \"reply_message\": \"Hi Test Guest, thank you for your message — we'll be in touch shortly. 😊 Jenny\",\n  \"thread_id\": \"some_test_thread_id\",\n  \"guest_name\": \"Test Guest\",\n  \"guest_id\": \"999999\",\n  \"guest_message\": \"guesttest alex test 2\",\n  \"guest_thumb\": \"\"\n}\n\nOR if no reply is needed:\n\n{\n  \"should_reply\": false,\n  \"reply_message\": \"\",\n  \"thread_id\": \"700574094\",\n  \"guest_name\": \"\",\n  \"guest_id\": \"\",\n  \"guest_message\": \"\",\n  \"guest_thumb\": \"\"\n}\n⚠️ DO NOT wrap the JSON in a string.\n⚠️ DO NOT escape quotation marks.\n⚠️ DO NOT return anything else besides the ONE raw JSON object.\n\n⚠️ ONLY ONE REPLY SHOULD BE IT THE OUTPUT\n\n🟨 FINAL WARNING:\nYou MUST NEVER wrap your output in any code block, such as json or or any other delimiters.\nYour reply MUST be ONLY a raw, valid JSON object as shown in the examples above.\nIf you wrap your output in any way, the automation will break.\n\n\n### SYSTEM PROMPT END"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -304,
+        -1296
+      ],
+      "id": "a4021abe-d759-4513-a4f0-d6aa90075c95",
+      "name": "JARVIS HOSTIFY",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0efa135e-bbed-4203-a6db-b0b3033930fc",
+              "leftValue": "={{$json.should_reply}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -1280
+      ],
+      "id": "3e28a877-69a4-44db-b308-39469a6c57a9",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Узел: Code after Jarvis\n// Цель: Распарсить ответ от JARVIS и объединить его с важными данными,\n// полученными напрямую из узла \"If New Actionable Guest Message\".\n\n// Получаем JSON-ответ от JARVIS (AI агент)\nconst jarvisNodeOutputObject = $json; // $json здесь - это вывод узла JARVIS HOSTIFY\n\nlet parsedJarvisContent;\n\n// 1. Проверяем и извлекаем строку с JSON от Jarvis\nif (!jarvisNodeOutputObject || typeof jarvisNodeOutputObject.output !== 'string') {\n  console.error(\"Error: Jarvis node output is not in the expected format { output: string }.\", JSON.stringify(jarvisNodeOutputObject));\n  return {\n    json: {\n      should_reply: false,\n      jarvis_reply_message: \"Error: Unexpected output format from Jarvis agent node.\",\n      jarvis_processing_error_in_code_node: \"Jarvis agent node did not return { output: string }.\",\n      jarvis_thread_id: null,\n      retrieved_firestore_doc_id: null, // Добавляем поля по умолчанию\n      retrieved_is_actionable: null\n    }\n  };\n}\n\nlet rawJsonStringFromJarvis = jarvisNodeOutputObject.output;\n\n// 2. Очищаем строку от Markdown-обертки (если есть)\n// УЛУЧШЕННАЯ ВЕРСИЯ очистки\nconsole.log(\"Raw JSON string from Jarvis (before cleaning):\", JSON.stringify(rawJsonStringFromJarvis));\n// Сначала удаляем начало блока, если он есть\nif (rawJsonStringFromJarvis.startsWith('```json')) {\n  rawJsonStringFromJarvis = rawJsonStringFromJarvis.substring('```json'.length);\n} else if (rawJsonStringFromJarvis.startsWith('```')) {\n  rawJsonStringFromJarvis = rawJsonStringFromJarvis.substring('```'.length);\n}\n// Затем удаляем конец блока, если он есть\nif (rawJsonStringFromJarvis.endsWith('```')) {\n  rawJsonStringFromJarvis = rawJsonStringFromJarvis.substring(0, rawJsonStringFromJarvis.length - '```'.length);\n}\nrawJsonStringFromJarvis = rawJsonStringFromJarvis.trim(); // Убираем пробелы по краям\nconsole.log(\"Cleaned JSON string from Jarvis (after cleaning):\", JSON.stringify(rawJsonStringFromJarvis));\n\n\n// 3. Парсим очищенную строку в объект JSON\ntry {\n  parsedJarvisContent = JSON.parse(rawJsonStringFromJarvis);\n} catch (e) {\n  console.error(\"Failed to parse cleaned JSON string from Jarvis:\", rawJsonStringFromJarvis, \"Error:\", e);\n  return {\n    json: {\n      should_reply: false,\n      jarvis_reply_message: \"Error: Could not parse JSON content from Jarvis response.\",\n      jarvis_processing_error_in_code_node: e.message,\n      raw_jarvis_content_for_debug: rawJsonStringFromJarvis,\n      jarvis_thread_id: null,\n      retrieved_firestore_doc_id: null,\n      retrieved_is_actionable: null\n    }\n  };\n}\n\n// 4. Проверяем наличие всех ОБЯЗАТЕЛЬНЫХ полей в распарсенном ответе Jarvis\nconst requiredJarvisFields = ['should_reply', 'reply_message', 'thread_id', 'guest_name', 'guest_message'];\nconst missingFields = requiredJarvisFields.filter(field => typeof parsedJarvisContent[field] === 'undefined');\n\nif (missingFields.length > 0) {\n  const errorMessage = `Error: Parsed Jarvis response is missing one or more key fields: ${missingFields.join(', ')}. Parsed_response: ${JSON.stringify(parsedJarvisContent)}`;\n  console.error(errorMessage);\n  return {\n    json: {\n      should_reply: false,\n      jarvis_reply_message: \"Error: Key fields missing in parsed Jarvis response.\",\n      jarvis_processing_error_in_code_node: `Missing fields: ${missingFields.join(', ')}`,\n      jarvis_thread_id: parsedJarvisContent.thread_id || null,\n      retrieved_firestore_doc_id: null,\n      retrieved_is_actionable: null\n    }\n  };\n}\n\n// 5. Извлекаем \"сквозные\" данные напрямую из узла \"If New Actionable Guest Message\"\n// ЗАМЕНИТЕ \"2605ba55-8af6-4a1f-98e1-1cf94e13cc66\" НА АКТУАЛЬНЫЙ ID ВАШЕГО УЗЛА \"If New Actionable Guest Message\"\n// Этот ID можно найти в URL, когда вы выбираете узел, или в JSON экспорте workflow.\n// Судя по вашему workflow JSON (`Hostify_JarvisGEMINI_Telegram_2_12.json`), ID узла \"If New Actionable Guest Message\" - это `2605ba55-8af6-4a1f-98e1-1cf94e13cc66`.\n\nlet retrievedData = {\n  retrieved_firestore_doc_id: null,\n  retrieved_is_actionable: null\n  // Можно добавить поля по умолчанию для других ожидаемых \"сквозных\" данных\n  // retrieved_original_guest_message_from_prepare: null,\n  // retrieved_guest_name_from_prepare: null,\n};\n\n// Получаем данные из указанного узла. Это массив items, берем первый (и единственный в данном случае).\n// ВАЖНО: Узел, на который ссылаемся, должен был выполниться в этом прогоне workflow.\nlet ifNodeItems;\ntry {\n  ifNodeItems = $('If New Actionable Guest Message').all();\n} catch (e) {\n  console.warn('Warning: Unable to access output of referenced node. Node may not have executed.', e.message);\n}\n\nif (ifNodeItems && ifNodeItems.length > 0 && ifNodeItems[0].json && ifNodeItems[0].json.json) {\n  const ifNodeData = ifNodeItems[0].json.json; // Данные из узла \"If New Actionable Guest Message\"\n  retrievedData.retrieved_firestore_doc_id = ifNodeData.processed_firestore_doc_id;\n  retrievedData.retrieved_is_actionable = ifNodeData.processed_isActionable;\n  // Раскомментируйте и добавьте другие поля, если они нужны и есть в ifNodeData:\n  // retrievedData.retrieved_original_guest_message_from_prepare = ifNodeData.data_from_prepare_guest_message;\n  // retrievedData.retrieved_guest_name_from_prepare = ifNodeData.data_from_prepare_guest_name;\n  // retrievedData.retrieved_guest_id_from_prepare = ifNodeData.data_from_prepare_guest_id;\n} else {\n  console.warn(`Warning: Could not retrieve data from node \"If New Actionable Guest Message\" (ID: 2605ba55-8af6-4a1f-98e1-1cf94e13cc66) or data structure is unexpected. 'Retrieved' data will be null.`);\n}\n\n// 6. Формируем итоговый JSON-объект для вывода из этого узла\nreturn {\n  json: {\n    // Данные от JARVIS (переименованы с префиксом jarvis_ для избежания конфликтов имен)\n    should_reply: parsedJarvisContent.should_reply,\n    jarvis_reply_message: parsedJarvisContent.reply_message,\n    jarvis_thread_id: parsedJarvisContent.thread_id,\n    jarvis_guest_name: parsedJarvisContent.guest_name,\n    jarvis_guest_id: parsedJarvisContent.guest_id,\n    jarvis_original_guest_message: parsedJarvisContent.guest_message,\n    jarvis_guest_thumb: parsedJarvisContent.guest_thumb || \"\",\n\n    // \"Сквозные\" данные из узла \"If New Actionable Guest Message\"\n    ...retrievedData // Используем spread operator для добавления всех полей из retrievedData\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -1296
+      ],
+      "id": "2dc1afa5-88fb-4260-8c46-0ecc160f6cdb",
+      "name": "Code after Jarvis"
+    },
+    {
+      "parameters": {
+        "url": "=https://api-rms.hostify.com/inbox/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$vars.HOSTIFY_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1168,
+        -1296
+      ],
+      "id": "e8b53c07-79b1-4044-95ae-ab9196aedd92",
+      "name": "HOSTIFY Request  Messages"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Функция для рекурсивного удаления null/undefined значений. Не изменилась.\nfunction removeNulls(obj) {\n  if (obj === null || obj === undefined) {\n    return undefined;\n  }\n  if (Array.isArray(obj)) {\n    return obj.map(removeNulls).filter(item => item !== undefined);\n  }\n  if (typeof obj === 'object') {\n    const cleaned = {};\n    for (const [key, value] of Object.entries(obj)) {\n      const cleanedValue = removeNulls(value);\n      if (cleanedValue !== undefined) {\n        cleaned[key] = cleanedValue;\n      }\n    }\n    return Object.keys(cleaned).length > 0 ? cleaned : undefined;\n  }\n  return obj;\n}\n\n// --- НАЧАЛО ЛОГИКИ УЗЛА ---\n\nconst items = $input.all();\n\nlet messagesData = null;\nlet reservationData = null;\nlet listingData = null;\n\n// [+] Соседние секции, которые в реальном payload идут рядом с listing\nlet amenitiesData = null;\nlet roomsData = null;\nlet photosData = null;\nlet descriptionData = null;\nlet detailsData = null;\n\nfor (const item of items) {\n  if (item.json?.messages) {\n    messagesData = item.json;\n  } else if (item.json?.reservation) {\n    reservationData = item.json.reservation;\n  } else if (item.json?.listing) {\n    listingData = item.json.listing;\n  }\n\n  // [+] Подхватываем «плоские» соседние поля, если они присутствуют в этом item\n  if (Array.isArray(item.json?.amenities)) amenitiesData = item.json.amenities;\n  if (Array.isArray(item.json?.rooms)) roomsData = item.json.rooms;\n  if (Array.isArray(item.json?.photos)) photosData = item.json.photos;\n  if (item.json?.description) descriptionData = item.json.description;\n  if (item.json?.details) detailsData = item.json.details;\n}\n\n// --- Создаем обогащенный listing_context ---\nlet listingContext = {};\nif (listingData) {\n  const customFields = listingData.custom_fields || {};\n\n  // Источники массивов: сначала берём «плоские», fallback — из listing\n  const amenities = amenitiesData || listingData.amenities || [];\n  const rooms = roomsData || listingData.rooms || [];\n  const photos = photosData || listingData.photos || [];\n\n  listingContext = {\n    name: listingData.name || listingData.nickname || \"Property\",\n\n    address: {\n      // Логика custom_fields сохранена\n      building_and_apartment: customFields.custom_field_600000968,\n      city: listingData.city,\n      country: listingData.country,\n      neighbourhood: listingData.neighbourhood\n    },\n\n    location: {\n      lat: listingData.lat,\n      lng: listingData.lng,\n      neighbourhood: listingData.neighbourhood\n    },\n\n    check_in: {\n      start: listingData.checkin_start || \"15:00\",\n      end: listingData.checkin_end || \"23:00\"\n    },\n    check_out: listingData.checkout || \"12:00\",\n\n    rules: {\n      min_nights: listingData.min_nights,\n      max_nights: listingData.max_nights,\n      // [+] Реальная вместимость, если есть; иначе прежняя логика\n      max_guests: (listingData.person_capacity ?? detailsData?.person_capacity ?? listingData.guests_included),\n      pets_allowed: listingData.pets_allowed > 0,\n      smoking_allowed: listingData.smoking_allowed > 0,\n      events_allowed: listingData.events_allowed > 0\n    },\n\n    // Возвращаем ранее утерянные данные, если они не пустые\n    ...(amenities.length > 0 && { amenities }),\n    ...(rooms.length > 0 && { rooms }),\n    ...(photos.length > 0 && {\n      photos: photos.map(p => ({\n        description: p.description,\n        thumbnail_file: p.thumbnail_file,\n        original_file: p.original_file,\n        sort_order: p.sort_order\n      }))\n    }),\n\n    // Добавляем контакты, очищая от null\n    contacts: removeNulls({\n      main: listingData.main_contact,\n      emergency: listingData.emergency_contact,\n      checkin: listingData.checkin_contact,\n      cleaning: listingData.cleaning_contact\n    }),\n\n    // СВЯТАЯ СВЯТЫХ: access из custom_fields\n    access: {\n      door_code: customFields.custom_field_600000915,\n      parking_spot: customFields.custom_field_600000883,\n      wifi_info: customFields.custom_field_600000884,\n      building_info: customFields.custom_field_600000968\n    },\n\n    // Информационное поле для подтверждения логики\n    priority_info: {\n      use_only_custom_fields: true\n    },\n\n    // Структурируем детали, объединяя listing и details (без добавления новых ключей)\n    property_details: removeNulls({\n      bedrooms: listingData.bedrooms ?? detailsData?.bedrooms,\n      bathrooms: listingData.bathrooms ?? detailsData?.bathrooms,\n      area: listingData.area ?? detailsData?.area,\n      floor: listingData.floor ?? detailsData?.floor,\n      beds: listingData.beds ?? detailsData?.beds\n    })\n  };\n\n  // Возвращаем description, беря «плоский» блок с fallback на listing.description\n  const desc = descriptionData || listingData.description;\n  if (desc && Object.keys(desc).some(k => desc[k] && desc[k].toString().trim().length > 0)) {\n    listingContext.description = removeNulls(desc);\n  }\n}\n\n// --- Создаем reservation_summary. Логика не изменилась. ---\nlet reservationSummary = {};\nif (reservationData) {\n  const now = new Date();\n  const checkInDate = new Date(reservationData.checkIn);\n  const checkOutDate = new Date(reservationData.checkOut);\n\n  let timeStatus;\n  if (reservationData.status === 'cancelled') {\n    timeStatus = \"cancelled\";\n  } else if (checkOutDate < now) {\n    timeStatus = \"past_completed\";\n  } else if (checkInDate <= now && checkOutDate >= now) {\n    timeStatus = \"current_stay\";\n  } else if (checkInDate > now) {\n    timeStatus = \"future_booking\";\n  } else {\n    timeStatus = \"unknown\";\n  }\n\n  reservationSummary = removeNulls({\n    internal_id: reservationData.id,\n    external_id: reservationData.channel_reservation_id || reservationData.confirmation_code,\n    source_channel: reservationData.source,\n    status: reservationData.status,\n    check_in_date: reservationData.checkIn,\n    check_out_date: reservationData.checkOut,\n    nights: reservationData.nights,\n    guest_count: reservationData.guests,\n    listing_id: reservationData.listing_id,\n    booking_guest_id: reservationData.guest_id,\n    total_amount: reservationData.subtotal,\n    amount_paid: reservationData.paid_sum,\n    amount_due: reservationData.due,\n    payment_status: reservationData.paid_part,\n    currency: reservationData.currency,\n    guest_language: reservationData.language_code,\n    notes: reservationData.notes,\n    cancelled_at: reservationData.cancelled_at,\n    time_status: timeStatus\n  });\n}\n\n// Объединяем всё в один объект\nconst combinedData = removeNulls({\n  thread_id: messagesData?.thread?.id,\n  messages: messagesData?.messages?.map(m =>\n    removeNulls({\n      id: m.id,\n      message: m.message,\n      created: m.created,\n      guest_name: m.guest_name,\n      guest_id: m.guest_id,\n      is_sms: m.is_sms,\n      is_automatic: m.is_automatic,\n      pinned: m.pinned\n    })\n  ) || [],\n  reservation_summary: reservationSummary,\n  listing_context: removeNulls(listingContext)\n});\n\nreturn [{\n  json: combinedData\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -1296
+      ],
+      "id": "b2262218-9d0c-4a4a-816b-df641f05be34",
+      "name": "Prepare thread data for Jarvis"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4893a201-083d-4153-9f39-6dde1b511bc0",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "SubscriptionConfirmation",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1808,
+        -1296
+      ],
+      "id": "0ac77deb-71ca-4727-bf9c-48ff41cf97e5",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.SubscribeURL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1616,
+        -1520
+      ],
+      "id": "087668b9-44a7-4b88-b941-43ba849b17a4",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code узел: Parse Webhook Body\n// Добавь между новым Webhook и If1\n\nlet parsedBody;\n\n// Проверяем, есть ли body и это строка\nif ($json.body && typeof $json.body === 'string') {\n  try {\n    parsedBody = JSON.parse($json.body);\n    console.log(\"Parsed SNS message type:\", parsedBody.Type);\n  } catch (e) {\n    console.error(\"Failed to parse body:\", e);\n    return [{\n      json: {\n        error: \"Failed to parse webhook body\",\n        originalBody: $json.body\n      }\n    }];\n  }\n} else if ($json.body && typeof $json.body === 'object') {\n  // Если body уже объект\n  parsedBody = $json.body;\n} else {\n  // Если данные прямо в $json\n  parsedBody = $json;\n}\n\n// Возвращаем распарсенные данные\nreturn [{\n  json: parsedBody\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2144,
+        -1296
+      ],
+      "id": "bd2602b6-63bb-4e16-8b77-37544fc63bbb",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code узел: Transform Webhook to Existing Format\n// Преобразует данные от webhook в формат, который ожидает существующая логика\n\n// Данные от webhook\nconst webhookData = $json;\n\n// Преобразуем в формат, который ожидает \"HOSTIFY Request Messages\"\n// Эмулируем структуру как будто это элемент из Loop Over Items\nreturn [{\n  json: {\n    id: webhookData.thread_id,\n    thread_id: webhookData.thread_id,\n    booking_id: webhookData.reservation_id,\n    guest_id: webhookData.guest_id || webhookData.sent_by,\n    message: webhookData.message,\n    created: webhookData.created,\n    // Добавляем поля, которые может ожидать старая логика\n    thread: {\n      id: webhookData.thread_id,\n      reservation_id: webhookData.reservation_id\n    },\n    // Флаг для отладки\n    _source: \"webhook\",\n    _original_webhook_data: webhookData\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        -1296
+      ],
+      "id": "3ee0d3e4-a8c4-4d7c-8ce2-6fcc720eb23e",
+      "name": "Code_Adapter_to_Old_Logic"
+    },
+    {
+      "parameters": {
+        "content": "## New Logic\n",
+        "height": 752,
+        "width": 3744,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2304,
+        -1536
+      ],
+      "typeVersion": 1,
+      "id": "6f970a39-9f68-4180-8580-0ec1e1814b56",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Prepare thread data for Jarvis').item.json.thread_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -416,
+        -1024
+      ],
+      "id": "8d0834b1-d3a7-407b-b3aa-7770116288f1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d93704af-1f05-410e-9e9f-3c34cb601bba",
+              "leftValue": "={{ $json.action === \"message_new\" && $json.is_incoming === 1 && $json.is_automatic === 0 || $json.message.toLowerCase().includes('guesttest')}}",
+              "rightValue": "message_new",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1600,
+        -1280
+      ],
+      "id": "0b0c2046-952d-48ee-b4ef-d46f0bc21c00",
+      "name": "If message_new Or automatic"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- ID сообщения, которое вызвало ЭТОТ запуск ---\nconst originalMessageId = $('Code').first().json.message_id;\n\n// --- Массив сообщений Hostify ---\nconst messages = $json.messages || [];\nconst latestMessage = messages[0];\nconst latestId = latestMessage?.id ?? null;\n\n// --- Если нет сообщений — считаем запуск старым и гасим ---\nif (!latestMessage || typeof latestMessage.id !== 'number') {\n  return []; // Остановка workflow\n}\n\n// --- Если message_id не совпадает с последним — гасим ---\nif (originalMessageId !== latestId) {\n  return []; // Остановка workflow\n}\n\n// --- Это самый свежий запуск — пропускаем дальше Hostify-ответ ---\nreturn [{\n  json: {\n    ...$json\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        -1472
+      ],
+      "id": "837db2dd-d784-4347-a783-1bdf68a226e6",
+      "name": "ifNotLatestMeccageThenStop"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2272,
+        -160
+      ],
+      "id": "182521ae-ef2b-48e2-aaaf-45b2e6b27bc0",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "=392363341",
+        "text": "={{$json.alert_text}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2096,
+        -160
+      ],
+      "id": "60ac0966-39f0-45ad-8751-0a0edabaca15",
+      "name": "Error",
+      "webhookId": "0aea7e4f-46c1-4bc0-9217-b70e2b919634",
+      "credentials": {
+        "telegramApi": {
+          "id": "CWyEnZiAssRO7wOX",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## EXEC ERROR to TLG\n",
+        "height": 208,
+        "width": 832,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2336,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "f2d799a3-7cda-405f-b382-731e34a41d32",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "url": "https://api-rms.hostify.com/calendar",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "listing_id",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `Hostify listing_id  for which the calendar should be retrieved.\nMust be a single  listing_id, typically taken from the current reservation context.\nUsed to check availability, extensions, early check-in or late checkout etc for this specific apartment.\n`, 'string') }}"
+            },
+            {
+              "name": "start_date",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `Start date of the calendar range to fetch, in YYYY-MM-DD format.\nDefines the beginning of the period to analyze availability around the guest’s stay\n(e.g. check-in date or a few days before).\n`, 'string') }}"
+            },
+            {
+              "name": "end_date",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters2_Value', `End date of the calendar range to fetch, in YYYY-MM-DD format.\nDefines the end of the period to analyze availability after the guest’s stay\n(e.g. check-out date or extension window).\n`, 'string') }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$vars.HOSTIFY_API_KEY}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        336,
+        -1024
+      ],
+      "id": "22d4a463-4653-4907-ace4-a024871308be",
+      "name": "HTTPR Calendar Tool"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        -1024
+      ],
+      "id": "79d719d3-6e00-4960-9660-c651f4b7b6ef",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "WeN7jUWwydLJQv2Y",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=const inputText : {{ $('If').item.json.jarvis_original_guest_message }}\n \nif  'inputText' is Empty then STOP don't generate any input\n\nelse if inputText is reasonable text then \n\nTranslate 'inputText'  ONLY to Symple English !  \n\nThis  text normally lays in hollyday homes or short term renting area.  Sender role - host or someone from hosting team. Return only tranlation, DON'T add your explanation"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        912,
+        -1312
+      ],
+      "id": "d58f10a3-245b-41be-b304-5c99403ea736",
+      "name": "translateMessage",
+      "credentials": {
+        "openAiApi": {
+          "id": "WeN7jUWwydLJQv2Y",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hostify-new-messages",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2304,
+        -1296
+      ],
+      "id": "8d158486-5d83-4d33-8241-cb3a5998c361",
+      "name": "Webhook",
+      "webhookId": "c321f8ff-ab29-441b-8a24-10d12d09a014"
+    },
+    {
+      "parameters": {
+        "url": "=https://api-rms.hostify.com/listings/{{ $fromAI('listing_id', 'Hostify listing id (integer)', 'string') }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=include_related_objects",
+              "value": "=1"
+            },
+            {
+              "name": "custom_fields",
+              "value": "=1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$vars.HOSTIFY_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        128,
+        -1024
+      ],
+      "id": "cecc5400-d319-447c-ba95-e6ddccf7c33c",
+      "name": "GetListingDetailsTool"
+    },
+    {
+      "parameters": {
+        "url": "=https://api-rms.hostify.com/reservations/{{ $fromAI('reservation_id', 'Hostify reservation id (integer)', 'string') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$vars.HOSTIFY_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -48,
+        -1024
+      ],
+      "id": "affd89cc-42ee-48f9-8335-644a8b908537",
+      "name": "getReservationTool"
+    },
+    {
+      "parameters": {
+        "amount": "={{  (Math.floor(Math.random() * (3 - 2 + 1)) + 2) }}",
+        "unit": "minutes"
+      },
+      "id": "24fd8d04-43eb-45ba-809c-edc3dbab02b2",
+      "name": "Wait X minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -1984,
+        -1104
+      ],
+      "webhookId": "2116d3d5-f382-47f4-9f92-ac1fd69aeeaf"
+    },
+    {
+      "parameters": {
+        "chatId": "=-1002521567522",
+        "text": "=❇️\n{{ $json.message || \"empty message\"}} \n\n\n\n",
+        "replyMarkup": "=inlineKeyboard",
+        "forceReply": {},
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "go 🔗",
+                    "additionalFields": {
+                      "url": "=https://go.hostify.com/inboxv2?thread={{ $json.thread_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1984,
+        -1664
+      ],
+      "id": "a1599399-81d2-49b1-ae72-c23d7f5cfc87",
+      "name": "forward message to Telegram",
+      "webhookId": "ad218fd9-cab4-4109-839a-26c7de117ada",
+      "credentials": {
+        "telegramApi": {
+          "id": "baSgoBsc1GC3gttg",
+          "name": "JennyHostify_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to read the current global system prompt for Jenny from Telegram.\n\nTake instructions ONLY from:\n- result.description\n- result.pinned_message.text \n\nDo not infer, extend, or modify the content.\nUse it verbatim as the system prompt.",
+        "resource": "chat",
+        "chatId": "-1003706358067"
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        -1024
+      ],
+      "id": "9562939d-ddc3-4e4d-bf74-663c14182030",
+      "name": "Global_Instructions_Tool",
+      "webhookId": "b45c0369-6be4-4133-aeaf-592fbb20e5bf",
+      "credentials": {
+        "telegramApi": {
+          "id": "baSgoBsc1GC3gttg",
+          "name": "JennyHostify_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-rms.hostify.com/inbox/reply",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$vars.HOSTIFY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "=",
+        "body": "={{ JSON.stringify({ thread_id: $json.jarvis_thread_id , message: $json.jarvis_reply_message }) }} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        -1296
+      ],
+      "id": "af519def-f957-4eee-b9cf-11643d786079",
+      "name": "SEND Jennys reply  to HOSTIFY",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### USER PROMPT \n\n{{ JSON.stringify($json, null, 2) }}\n\n### USER PROMPT END\n\n\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=### SYSTEM PROMPT\n\n🟦 1. Описание роли \nYou are a helpful virtual assistant who helps The Team manage a short-term rental service.\n\nYou also act as an orchestrator of internal tools.\nFor  requests (such as early check-in, late checkout, stay extension, date changes, availability dates, availability apartments, discounts, or relocation) you MUST call 'HTTPR Calendar Tool' instead of guessing or answering directly.\nFor  apartments availability requests you MUST ALWAYS call 'HTTPR Calendar Tool' instead of guessing! \n\n Mode Classification (CRITICAL, before any tool calls):\nSet Mode to 'single-listing' or 'multi-listing'.\nUse multi-listing only if the request explicitly asks for other/alternative apartments, options for friends/family, relocation, or availability beyond the current apartment (e.g., across The Greens).\nOtherwise set single-listing Mode (default).\n\n\n\nAt the start of EVERY run, you MUST call 'Global_Instructions_Tool' to load the latest global instructions.\nUse ONLY:\n- result.description\n- result.pinned_message.text (fallback)\nDo not infer, extend, or modify that content. Treat it as an addendum to this SYSTEM PROMPT and follow it with highest priority.\n\n\n\n🟦 1A. Role & Responsibility Update\nYou receive the entire message from team.\nYour responsibilities:\nAnalyze all messages, using both metadata (sender name, sender_type) and content/context to correctly determine who sent each message ( host/admin, system, or assistant)where applicable.\n\nAlways reply to the last message from the guest, even if it is a simple thank you, apology, clarification, or short message after the main conversation. Your reply can be very brief (messsenger style).\nIn one thread vary your responses so they sound natural, warm, and not repetitive. Use emoji.\n\nIf the  message involves any of the following:\n- early check-in\n- late checkout\n- stay extension\n- change of dates\n- availability for other dates\n- discounts or negotiations\n- moving to another apartment\n- any situation requiring calendar or availability checks you MUST call the 'HTTPR Calendar Tool' before composing a reply.\nYou are NOT allowed to calculate dates, availability, or make assumptions yourself.\n\n\n\n🟩 2. Rules for Identifying the Sender\nFor each message in the thread, use these rules to determine the sender:\n\nIf name matches any name in [\"Marina Saratovkina\",\"Marina\"] - it is a Host, Superviser \n\nIf name matches any name [\"Alexander Ostrovoy\", \"Alexander\"] - He is THE BIG BOSS of ALL.\n\nIf name matches any name [ \"Jaera\", \"jaeramie\",\"jaeramie cataan\"  ], treat as hospitality assistant .\n\n\n\n\n\n🟧 3. Special Rule for Testing\nSpecial rule for testing:\nIf the text of the last message contains the word guesttest (case-insensitive), always message as a test message \n\n\n🟪 4. Использование информации и инструментов\n\n🔧 4A. Available Tools\n\n⛔ CRITICAL RULE: YOU HAVE NO BUILT-IN KNOWLEDGE ABOUT ANY PROPERTY.\nYou do NOT know what amenities, appliances, or features any apartment has.\nYou do NOT know addresses, access codes, WiFi passwords, or parking spots.\nYou MUST call the appropriate tool to retrieve this information.\nIf you answer a property-related question WITHOUT calling a tool first, you are HALLUCINATING and providing FALSE information.\n\nYou have access to the following tools to retrieve data on-demand:\n'getReservationTool' — Retrieves reservation details (check-in/check-out dates,check-in/check-out time,  guest count, booking status, payment info, notes, etc.)\n- Call this tool when you need booking-specific information to answer guest questions\n- Required for: dates confirmation, stay duration, payment questions, booking status\n\n'GetListingDetailsTool' — Retrieves property/listing details (address, building name, access codes, WiFi, parking, amenities, check-in instructions, etc.)\n- Call this tool when you need property-specific information\n- Required for: address questions, access codes, WiFi credentials, parking spot, building info, amenities\n\n'HTTPR Calendar Tool' — Checks calendar availability and handles date-related requests\n- Call this tool for: early check-in, late checkout, stay extension, date changes, availability checks, discounts, relocation requests\n- You MUST call this tool before answering any availability or date modification questions\n\n\n\n\n'Global_Instructions_Tool' — Reads the additional global system prompt/instructions for Jenny from Telegram (result.description; pinned_message.text)\n- Call this tool FIRST on every run\n- Use the returned text verbatim as secondary instructions\n- If global instructions from 'Global_Instructions_Tool' conflict with this SYSTEM PROMPT, follow this SYSTEM PROMPT and Elevate Attention to the Team.\n\n\n\n'Team_Messages_Tool' - ALWAYS Use this tool to Reply.\n\n\n🔧 4B. Tool Usage Strategy\n\n1.1 First call 'Global_Instructions_Tool' and load global instructions.\n\n1.2 **Analyze the  message first** to determine what information is needed\n\n2. **Call the appropriate tool(s)** before composing your reply:\n   2.1  Guest asks about their booking → call 'getReservationTool'\n   2.2 Guest asks about the property/access → call 'GetListingDetailsTool'  \n   2.3 Guest asks about dates/availability/ any changes  → call 'getReservationTool' (if available) → call 'HTTPR Calendar Tool'.\n      2.3.1 If Mode = single-listing → call HTTPR Calendar Tool ONLY for the current listing.\n      2.3.2 If Mode = multi-listing → loop through ALL listing_id from Global_Instructions_Tool and call HTTPR Calendar Tool for EACH listing_id, then aggregate results and reply with ONLY available options + Airbnb short links.\n   2.4 Complex questions may require call of multiple tools\n\n3. THE ONLY WAY OT SAY SOMETHING -  call 'Team_Messages_Tool' \n\n4. **Wait for tool response** before generating your reply\n5. **Use ONLY the data returned by tools** — do not guess or assume information\n\n⛔ FORBIDDEN BEHAVIOR:\n- Answering questions about amenities (kettle, washing machine, iron, etc.) without calling GetListingDetailsTool\n- Answering questions about booking dates without calling getReservationTool  \n- Confirming availability  without calling HTTPR Calendar Tool\n- Assuming ANY fact about the property that wasn't returned by a tool\n- Answering questions about team members personal data (phone numbers, adresses, gender etc.)\n\n\n\n\n🔧 4C. Thread Handling\nIF You will receive:\n   - `thread` from the Hostify inbox with the entire conversation history: use it to understand context\n   - `thread_id` and `reservation_id`: use these to call tools when needed\n\nYour job is to:\n1. Analyze the thread to determine if a reply is needed\n2. If the guest asks a question requiring booking or property data — call the appropriate tool(s)\n3. Generate a short, friendly message based on tool responses\n\nCRITICAL: When answering questions about property access, WiFi, parking, or location, you MUST:\n1. First call GetListingDetailsTool to retrieve current data\n2. Use ONLY information from custom_fields in the response:\n   - Parking spot number: use ONLY custom_field_600000883\n   - WiFi credentials: use ONLY custom_field_600000884  \n   - Door/lock code: use ONLY custom_field_600000915\n   - Building name and apartment: use ONLY custom_field_600000968\n\nIGNORE any similar information found in other listing fields (address, access_codes, etc.) as custom_fields contain the correct, updated information.\n\nIf a reply is based on information returned by any tool, you must not guess, change, or infer any new facts such as availability, dates, times, prices, or confirmations. Use the tool output to create a polite, friendly guest-facing message.\n\n\n🔧 4D. Tool Call Examples\n\nGuest: \"Is there a kettle?\"\n→ MUST call GetListingDetailsTool FIRST, then answer based on amenities list\n\nGuest: \"What's the WiFi password?\"  \n→ MUST call GetListingDetailsTool FIRST, then use custom_field_600000884\n\nGuest: \"When is my checkout?\"\n→ MUST call getReservationTool FIRST, then use check_out_date\n\nGuest: \"Can I check in at 11am?\"\n→ MUST call 'HTTPR Calendar Tool' FIRST, then compose reply based on response\n\nGuest: \"Can someone pay cash or cheque?\"\n→ IGNORE ALL FINANCIAL QUESIONS , DO NOT REPLY\n\nNEVER answer these questions from \"memory\" or \"general knowledge\" — you have none.\n\n\n🔧 4E. Calendar Availability Analysis (CRITICAL)\n\nWhen a request asks \"Can I book dates A to B?\", perform this analysis:\n\n**STEP 1: Validate the full date range (A to B-1)**\nFor EACH date from A to (B-1) inclusive (overnight stay dates only):\n- If `status: \"booked\"` OR `is_manual_blocked: 1` → Range NOT available ❌\n- Continue only if ALL intermediate dates show `status: \"available\"`\n\n**STEP 2: Check the checkout boundary (date B)**\nDate B is the DEPARTURE date, NOT an overnight stay.\nGuest will check out on date B before `checkout_time`.\n\nIf calendar shows date B as `status: \"booked\"` with a `reservation_id`:\na) This means another guest has a reservation STARTING on date B\nb) Call `getReservationTool(reservation_id)` to get their check-in details\nc) Verify: does `checkIn` == date B? (If not, data error, possible data inconsistency → escalate ⁉️)\nd) Extract `planned_arrival` time from their reservation\ne) Compare checkout/check-in times (see STEP 3)\n\n**STEP 3: Time-interval availability check (CORE LOGIC)**\n\nDetermine checkout time on date B:\n- If there is an existing reservation for the current guest → use `planned_departure`\n- If no reservation exists (guest is asking before booking) → use listing default `check_out_time`\n- If `planned_departure` is missing or invalid → fallback to listing default\n\nDetermine check-in time on date B for the next reservation:\n- Use `planned_arrival` from reservation_id if present and valid\n- If missing or invalid → fallback to listing default `check_in_start`\n\nTime relationship assessment:\n```\nIF checkout_time < checkin_time\n→ NO TIME OVERLAP → Availability POSSIBLE\nELSE\n→ TIME OVERLAP (checkout >= checkin)\n→ Availability CANNOT be confirmed without changing times\n```\n\nImportant:\n- A time overlap means intervals intersect.\n- Intersecting intervals are NOT availability.\n- They may only become possible via manual coordination or time changes.\n\n**STEP 4: Operational risk & escalation (NON-BLOCKING LAYER)**\n\nEvaluate operational signals on date B:\n\n- `is_manual_blocked = 1`\n  → HARD BLOCK → Not available\n\n- `is_preparation_blocked = 1`\n  → OPERATIONAL RISK FLAG (not a block)\n\nDecision logic:\n\nIF STEP 3 resulted in NO TIME OVERLAP:\n  - Availability can be confirmed\n  - If `is_preparation_blocked = 1`\n    → Confirm availability BUT prefix response with ⁉️ @short_rent for team awareness. Prefix is for internal visibility only and does not change guest-facing confirmation tone.\n\nIF STEP 3 resulted in TIME OVERLAP:\n  - Do NOT confirm availability\n  - Respond with neutral wording:\n    \"Let me check timing with the team and get back to you shortly.\"\n  - Prefix with ⁉️\n\nKey principle:\n- Cleaning and turnovers are operational challenges, not guest-facing rejections.\n- Time overlap is NOT availability; it is a coordination case.\n\n**STEP 5: Fallback rules**\n- If `getReservationTool(reservation_id)` fails or returns no data:\n  → Use listing defaults for times\n  → Prefix response with \"⁉️\" (cannot verify actual times)\n\n- If `planned_arrival` or `planned_departure` are null, empty, or invalid format:\n  → Fallback to listing defaults\n  → Consider adding ⁉️ if this is a critical boundary case\n\n- If ANY step fails or data looks suspicious:\n  → DO NOT guess or assume\n  → Respond with: \"⁉️ Let me verify availability with the team!\"\n\n**Example scenario (standard case):**\n\nGuest asks: \"Can I book Feb 24–27?\"\n\nCalendar:\n- Feb 24–26: status = available\n- Feb 27: status = booked, reservation_id = 701254122\n\nSteps:\n1. Call getReservationTool(701254122)\n   → planned_arrival = 15:00\n2. Guest checkout time:\n   → No reservation yet → use listing default 12:00\n3. Compare times:\n   → 12:00 < 15:00 → NO TIME OVERLAP\n4. is_preparation_blocked = 0\n\nResponse:\n\"Yes, Feb 24–27 is available! 😊 Jenny\"\n\n**Example scenario (coordination required):**\n\nGuest asks: \"Can I book Mar 01–05?\"\n\nData:\n- Checkout time = 13:00 (override)\n- Next check-in time = 12:00 (override)\n\nComparison:\n- 13:00 >= 12:00 → TIME OVERLAP\n\nResponse:\n\"⁉️ Let me check timing with the team and get back to you shortly. 😊 \"\n\n**Availability Core Rule**\n\nA stay is available if and only if:\n- All dates inside the stay (A..B-1) are not blocked\n- AND the checkout time on date B is strictly earlier than the next check-in time on date B\n\nIf times intersect or touch:\n- Availability is not confirmed\n- Escalate for coordination without rejecting\n\n**Cleaning & Turnover Philosophy**\n\n- Availability is determined by time-interval overlap only.\n- Cleaning logistics NEVER create automatic guest-facing rejections.\n- However, intersecting time intervals are NOT availability.\n- Tight or complex turnovers require team coordination before confirmation.\n\nJenny's role:\n- Confirm availability when time intervals do not overlap.\n- Escalate for coordination when intervals overlap or operational risk is flagged.\n- Never promise availability that depends on changing agreed times.\n\n\n🟫 5. Reply Rules\n\nReply if:\nThe last message contanes \"@JennyHostify_bot\",  *is not empty* , is not a emoji . \n \n\n\nIf the last guest message is a direct question that can be answered using information from the tools (for example, questions about the building name, address, check-in/check-out time, access code, parking spot, etc.):\n1. Call the appropriate tool to retrieve the information\n2. For availability questions involving dates A to B:\n   a) Call 'HTTPR Calendar Tool' for the full range\n   b) Apply Calendar Availability Analysis rules (section 4E) step-by-step\n   c) For boundary dates showing `status: \"booked\"`:\n      - Call `getReservationTool(reservation_id)` to verify times\n      - If tool fails or returns incomplete data → escalate with ⁉️\n   d) Perform mathematical time conflict check (checkout < checkin)\n   e) Consider `is_preparation_blocked` as a risk signal, not a hard block\n3. ALWAYS include the relevant specific information in your reply IF the tool returned it\n4. IF any data is missing, uncertain, or TIME OVERLAP detected → use \"⁉️\" and neutral wording\n5. NEVER guess times, availability, or make assumptions — escalate if uncertain\n\nOnly add a polite closing or follow-up phrase if appropriate.\nThis factual reply rule takes priority over general rules about avoiding specifics.\n\n\nIf the reply is based on output from the 'HTTPR Calendar Tool', you must finalize and polish the reply_message.\nYou MUST NOT introduce new facts, dates, prices, availability, or promises\nbeyond what was provided by the tool.\n\nIF  requests about reducing  stay ONLY escalate it to Team, DO NOT PROMICE ANITHING FIRM FOR GUEST! \n\nIF guest requests about changing their stay dates or about early check-in or late check-out time ->  call 'HTTPR Calendar Tool' to analize availibylity and, after getting correct data from tool, reply  about POTENTIAL availibility but aware  about escalating  it to Team  for Final DECISION. \n\n\nDeep-night check-in handling (CRITICAL):\nIf a guest requests check-in after checkin_end (≈23:00) and before ≈06:00, you MUST:  NOT promise meeting the guest, access, or successful late check-in. State that according to listing rules, check-in ends at checkin_end and resumes from 08:00 the next day. Say that you will raise this internally and come back with a decision. Use neutral, non-committal wording (\"we'll check if anything is possible\", \"we'll update you shortly\"). Treat this as a special late check-in exception, NOT as standard early/late check-in.\n\n\nElevated Attention Marker (CRITICAL):\nIf a guest question requires or appears to require elevated team attention — or if Jenny judges it as such — she MUST: Prefix reply_message with \"⁉️\".\nUse neutral, non-committal wording, Make no promises. The \"⁉️ \" marker is for rising visibility only and is never explained to the guest.\n\n\nWARNING: You can share apartment and parking numbers ONLY if this booking has Comfirmed status (ypu can understand it from dialog messages or JSON). if guest is just thinking about \"book or not?\"\", you can share ONLY BUILDING NAME.\n\n\n🟨 6. ВАЖНО: Формат ответа\nWhenever you return your reply, ALWAYS replys in English and reply in  very brif style. \nALWAYS add your sign in the end of all your messages something like \"😊 Jenny, assistant\" Or for example 'Jenny :)' or something like this. Avoid repetitions in your signs in one thread.\n\n\nDefault reply length: 1–2 short sentences максимум.\nOnly add a 3rd sentence if strictly required for clarity.\n\n\n\n\n### SYSTEM PROMPT END"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -16,
+        -752
+      ],
+      "id": "9543e19a-47f6-4437-a0e1-a70a9c5f0b00",
+      "name": "JARVIS HOSTIFY2",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -32,
+        -544
+      ],
+      "id": "b52fd2d1-eddd-4c9d-a7eb-bdfb920cf9f6",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to Send  FLAGGING  and ALERTS Messages from Jenny to Telegram in case agent  (Jenny) wants to Escalate guest request or problem to team!   \n\nUse this tool to Send  Messages from Jenny to Telegram in case:\n- agent  (Jenny) wants to Escalate guest request or problem to team!  \n- message contains \"?!\" or \"!?\" \n- message  is FLAGGING  \n- message  is ALERT \n\n",
+        "chatId": "-1003706358067",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "message_thread_id": 2
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        -1024
+      ],
+      "id": "928742cd-bd78-4678-a572-96073c8e8c73",
+      "name": "Guest_Alerts_Tool",
+      "webhookId": "b45c0369-6be4-4133-aeaf-592fbb20e5bf",
+      "credentials": {
+        "telegramApi": {
+          "id": "baSgoBsc1GC3gttg",
+          "name": "JennyHostify_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to Send  Messages from Jenny to  team \n\n\n",
+        "chatId": "-1003706358067",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "message_thread_id": "={{ $json.message.message_thread_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -544
+      ],
+      "id": "679028b4-1e6b-46f8-bcd0-173e6d06e079",
+      "name": "Team_Messages_Tool",
+      "webhookId": "b45c0369-6be4-4133-aeaf-592fbb20e5bf",
+      "credentials": {
+        "telegramApi": {
+          "id": "baSgoBsc1GC3gttg",
+          "name": "JennyHostify_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each one\nfor item in _items:\n  item[\"json\"][\"my_new_field\"] = 1\nreturn _items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -752
+      ],
+      "id": "38d016d7-b8a6-4800-92f5-4529b4641f80",
+      "name": "Code in Python (Native) (Beta)"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "*",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2304,
+        -752
+      ],
+      "id": "250cfbd8-a4a5-4310-bc54-677225c25bb3",
+      "name": "Trigger",
+      "webhookId": "040deca8-4b04-4301-867b-cebb8e308158",
+      "credentials": {
+        "telegramApi": {
+          "id": "baSgoBsc1GC3gttg",
+          "name": "JennyHostify_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5252274a-74c3-47c2-bce8-f062e7f99343",
+              "leftValue": "={{\n  $json.message?.chat?.type === \"private\"\n  ||\n  $json.message?.message_thread_id === 6\n  ||\n  /^jenny\\b/i.test($json.message?.text || \"\")\n  ||\n  /^дженни\\b/i.test($json.message?.text || \"\")\n  ||\n  /@JennyHostify_bot/i.test($json.message?.text || \"\")\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1184,
+        -752
+      ],
+      "id": "312b2f3c-0902-4a6f-a6bf-9cc2b71791cc",
+      "name": "If_Bot_alowed_to_Reply_In_chat"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cohost/tenant-sync",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "ccea4152-fe8d-49c2-9087-81d08a82592d",
+      "name": "Webhook_tenant_sync",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2320,
+        -448
+      ],
+      "webhookId": "93979537-6535-47da-9ac6-c34a39beab8f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require(\"crypto\");\n\nfunction getHeader(headers, name) {\n  const target = name.toLowerCase();\n  for (const [k, v] of Object.entries(headers || {})) {\n    if (k.toLowerCase() === target) return Array.isArray(v) ? v[0] : v;\n  }\n  return \"\";\n}\n\nfunction getVar(name, fallback = \"\") {\n  try {\n    if ($vars && typeof $vars.get === \"function\") {\n      const v = $vars.get(name);\n      if (v !== undefined && v !== null && v !== \"\") return v;\n    }\n  } catch (_) {}\n  try {\n    if ($vars && $vars[name] !== undefined && $vars[name] !== null && $vars[name] !== \"\") {\n      return $vars[name];\n    }\n  } catch (_) {}\n  return fallback;\n}\n\nconst input = $json || {};\nconst headers = input.headers || {};\nconst bodyObj = input.body || {};\nconst rawBody =\n  typeof input.rawBody === \"string\"\n    ? input.rawBody\n    : typeof bodyObj === \"string\"\n    ? bodyObj\n    : JSON.stringify(bodyObj);\n\nconst secret = getVar(\"N8N_WEBHOOK_SECRET\", \"\");\nconst callbackUrl = getVar(\"APP_CALLBACK_URL\", \"\");\nconst hostifyValidateUrl = getVar(\"HOSTIFY_VALIDATE_URL\", \"https://api-rms.hostify.com/inbox\");\n\nif (!secret) {\n  return [{ json: { ok: false, error: \"Missing N8N_WEBHOOK_SECRET variable.\" } }];\n}\n\nconst timestamp = getHeader(headers, \"x-cohost-timestamp\");\nconst signature = getHeader(headers, \"x-cohost-signature\");\nconst incomingIdempotencyKey =\n  getHeader(headers, \"x-cohost-idempotency-key\") || crypto.randomUUID();\n\nconst expected = crypto\n  .createHmac(\"sha256\", secret)\n  .update(`${timestamp}.${rawBody}`)\n  .digest(\"hex\");\n\nlet signatureValid = false;\nif (timestamp && signature) {\n  const sigBuf = Buffer.from(signature);\n  const expBuf = Buffer.from(expected);\n  if (sigBuf.length === expBuf.length) {\n    signatureValid = crypto.timingSafeEqual(sigBuf, expBuf);\n  }\n}\n\nif (!signatureValid) {\n  return [{ json: { ok: false, error: \"Invalid signature.\" } }];\n}\n\nlet payload;\ntry {\n  payload = typeof bodyObj === \"object\" && bodyObj !== null ? bodyObj : JSON.parse(rawBody);\n} catch (e) {\n  return [{ json: { ok: false, error: \"Invalid JSON payload.\" } }];\n}\n\nconst tenantId = payload.tenantId;\nconst mode = payload.mode;\nconst telegramChatId = payload.telegramChatId || null;\nconst hostifyApiKey = payload.hostifyApiKey || null;\nconst event = payload.event;\n\nif (!tenantId || !event) {\n  return [{ json: { ok: false, error: \"tenantId and event are required.\" } }];\n}\n\nlet hostifyOk = false;\nlet hostifyStatus = null;\nlet hostifyError = null;\n\nif (!hostifyApiKey) {\n  hostifyError = \"hostifyApiKey is missing.\";\n} else {\n  try {\n    const hostifyResponse = await this.helpers.httpRequest({\n      method: \"GET\",\n      url: hostifyValidateUrl,\n      headers: {\n        \"x-api-key\": hostifyApiKey,\n        Accept: \"application/json\",\n      },\n      returnFullResponse: true,\n      ignoreHttpStatusErrors: true,\n    });\n\n    hostifyStatus = hostifyResponse.statusCode;\n    hostifyOk = hostifyStatus >= 200 && hostifyStatus < 300;\n\n    if (!hostifyOk) {\n      hostifyError =\n        typeof hostifyResponse.body === \"string\"\n          ? hostifyResponse.body\n          : JSON.stringify(hostifyResponse.body ?? {});\n    }\n  } catch (e) {\n    hostifyError = e.message;\n  }\n} // <-- important missing brace\n\nconst eventType = hostifyOk ? \"n8n_sync_ok\" : \"n8n_sync_error\";\n\nconst callbackPayload = {\n  tenantId,\n  eventType,\n  payload: {\n    mode,\n    telegramChatId,\n    validated: hostifyOk,\n    hostifyStatus,\n    error: hostifyError,\n  },\n};\n\nlet callbackSent = false;\nlet callbackStatus = null;\nlet callbackError = null;\n\nif (callbackUrl) {\n  const callbackBody = JSON.stringify(callbackPayload);\n  const callbackTimestamp = Date.now().toString();\n  const callbackSignature = crypto\n    .createHmac(\"sha256\", secret)\n    .update(`${callbackTimestamp}.${callbackBody}`)\n    .digest(\"hex\");\n\n  try {\n    const callbackResponse = await this.helpers.httpRequest({\n      method: \"POST\",\n      url: callbackUrl,\n      headers: {\n        \"content-type\": \"application/json\",\n        \"x-cohost-timestamp\": callbackTimestamp,\n        \"x-cohost-signature\": callbackSignature,\n        \"x-cohost-idempotency-key\": `${incomingIdempotencyKey}:callback`,\n      },\n      body: callbackPayload,\n      json: true,\n      returnFullResponse: true,\n      ignoreHttpStatusErrors: true,\n    });\n\n    callbackStatus = callbackResponse.statusCode;\n    callbackSent = callbackStatus >= 200 && callbackStatus < 300;\n\n    if (!callbackSent) {\n      callbackError =\n        typeof callbackResponse.body === \"string\"\n          ? callbackResponse.body\n          : JSON.stringify(callbackResponse.body ?? {});\n    }\n  } catch (e) {\n    callbackError = e.message;\n  }\n} else {\n  callbackError = \"APP_CALLBACK_URL is not configured.\";\n}\n\nreturn [\n  {\n    json: {\n      ok: hostifyOk,\n      tenantId,\n      eventType,\n      hostifyStatus,\n      hostifyError,\n      callbackSent,\n      callbackStatus,\n      callbackError,\n    },\n  },\n];"
+      },
+      "id": "9a2218aa-abf9-4b94-b658-f98ee7527bd4",
+      "name": "Process_Tenant_Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "be530e95-6d87-4538-9732-76d3da64fb9b",
+      "name": "Respond_to_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1664,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// A2: Build rich operational context for Telegram error alerts\n// Input source: Error Trigger payload\n\nconst src = $json ?? {};\n\nfunction firstDefined(...values) {\n  for (const value of values) {\n    if (value !== undefined && value !== null && value !== '') return value;\n  }\n  return null;\n}\n\nfunction extractRunItems(errorPayload) {\n  const runData = errorPayload?.execution?.data?.resultData?.runData;\n  if (!runData || typeof runData !== 'object') return [];\n\n  const items = [];\n  for (const nodeRuns of Object.values(runData)) {\n    if (!Array.isArray(nodeRuns)) continue;\n    for (const run of nodeRuns) {\n      const main = run?.data?.main;\n      if (!Array.isArray(main)) continue;\n      for (const branch of main) {\n        if (!Array.isArray(branch)) continue;\n        for (const item of branch) {\n          if (item?.json && typeof item.json === 'object') items.push(item.json);\n        }\n      }\n    }\n  }\n\n  return items;\n}\n\nfunction findContextValue(items, keys) {\n  for (const item of items) {\n    for (const key of keys) {\n      if (item[key] !== undefined && item[key] !== null && item[key] !== '') return item[key];\n    }\n  }\n  return null;\n}\n\nconst runItems = extractRunItems(src);\n\nconst workflowName = firstDefined(src?.workflow?.name, src?.workflowName, 'unknown_workflow');\nconst workflowId = firstDefined(src?.workflow?.id, src?.workflowId, 'n/a');\nconst executionId = firstDefined(src?.execution?.id, src?.executionId, src?.id, 'n/a');\nconst executionUrl = firstDefined(src?.execution?.url, src?.executionUrl, 'n/a');\nconst failedNodeName = firstDefined(src?.lastNodeExecuted, src?.node?.name, src?.error?.node?.name, 'unknown_node');\nconst errorMessage = firstDefined(src?.error?.message, src?.message, src?.error?.description, 'Unknown error');\n\nconst tenantId = firstDefined(\n  findContextValue(runItems, ['tenant_id', 'tenantId']),\n  src?.tenant_id,\n  src?.tenantId,\n  'n/a'\n);\n\nconst threadId = firstDefined(\n  findContextValue(runItems, ['thread_id', 'threadId']),\n  src?.thread_id,\n  src?.threadId,\n  'n/a'\n);\n\nconst reservationId = firstDefined(\n  findContextValue(runItems, ['reservation_id', 'reservationId', 'booking_id']),\n  src?.reservation_id,\n  src?.reservationId,\n  src?.booking_id,\n  'n/a'\n);\n\nconst nowUtc = new Date().toISOString();\n\nconst alertText = [\n  '🚨 WORKFLOW FAILURE',\n  'Workflow: ' + workflowName,\n  'Workflow ID: ' + workflowId,\n  'Execution ID: ' + executionId,\n  'Execution URL: ' + executionUrl,\n  'Failed node: ' + failedNodeName,\n  'Tenant: ' + tenantId,\n  'Thread: ' + threadId,\n  'Reservation: ' + reservationId,\n  'Time (UTC): ' + nowUtc,\n  '---',\n  'Error: ' + errorMessage,\n].join('\\n');\n\nreturn [{\n  json: {\n    ...src,\n    workflow_name: workflowName,\n    workflow_id: workflowId,\n    execution_id: executionId,\n    execution_url: executionUrl,\n    failed_node_name: failedNodeName,\n    tenant_id: tenantId,\n    thread_id: threadId,\n    reservation_id: reservationId,\n    error_message: errorMessage,\n    alert_text: alertText,\n    alert_generated_at_utc: nowUtc,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -1744
+      ],
+      "id": "b2811e70-61d9-48e4-b2d8-6a311eff6610",
+      "name": "Build_Error_Alert_Context"
+    }
+  ],
+  "pinData": {
+    "Error Trigger": [
+      {
+        "json": {
+          "execution": {
+            "id": "32129",
+            "url": "https://mystay.app.n8n.cloud/workflow/5YuysH1OpiE13dtH/executions/32129",
+            "error": {
+              "cause": "={\n  \"chat_id\": {{ $('Получить сообщение').item.json.message.from.id }},\n  \"action\": \"typing\"\n}\n",
+              "level": "warning",
+              "tags": {},
+              "timestamp": 1754289008265,
+              "context": {
+                "runIndex": 0,
+                "itemIndex": 0,
+                "type": "no_node_execution_data",
+                "descriptionKey": "noNodeExecutionData",
+                "nodeCause": "Получить сообщение",
+                "parameter": "jsonBody"
+              },
+              "functionality": "regular",
+              "name": "ExpressionError",
+              "message": "Referenced node is unexecuted",
+              "stack": "ExpressionError: Referenced node is unexecuted\n    at createExpressionError (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/workflow-data-proxy.ts:775:11)\n    at ensureNodeExecutionData (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/workflow-data-proxy.ts:1069:13)\n    at Object.get (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/workflow-data-proxy.ts:1124:9)\n    at Proxy.eval (eval at getFunction (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+tournament@1.0.6/node_modules/@n8n/tournament/src/FunctionEvaluator.ts:13:16), <anonymous>:7:66)\n    at Proxy.eval (eval at getFunction (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+tournament@1.0.6/node_modules/@n8n/tournament/src/FunctionEvaluator.ts:13:16), <anonymous>:14:3)\n    at FunctionEvaluator.evaluate (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+tournament@1.0.6/node_modules/@n8n/tournament/src/FunctionEvaluator.ts:20:13)\n    at Tournament.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+tournament@1.0.6/node_modules/@n8n/tournament/src/index.ts:45:25)\n    at evaluateExpression (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/expression-evaluator-proxy.ts:20:9)\n    at Expression.renderExpression (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/expression.ts:332:29)\n    at Expression.resolveSimpleParameterValue (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/expression.ts:311:28)\n    at Expression.getParameterValue (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-workflow@file+packages+workflow/node_modules/n8n-workflow/src/expression.ts:522:16)\n    at ExecuteContext._getNodeParameter (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.29_46e522f8a77ed5eccc0991bfcca21502/node_modules/n8n-core/src/execution-engine/node-execution-context/node-execution-context.ts:367:37)\n    at ExecuteContext.getNodeParameter (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.29_46e522f8a77ed5eccc0991bfcca21502/node_modules/n8n-core/src/execution-engine/node-execution-context/execute-context.ts:126:9)\n    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_1af219c3f47f2a1223ec4ccec249a974/node_modules/n8n-nodes-base/nodes/HttpRequest/V3/HttpRequestV3.node.ts:212:36)\n    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.29_46e522f8a77ed5eccc0991bfcca21502/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1211:32)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.29_46e522f8a77ed5eccc0991bfcca21502/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1581:38\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.29_46e522f8a77ed5eccc0991bfcca21502/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2157:11"
+            },
+            "lastNodeExecuted": "печатает...2",
+            "mode": "trigger"
+          },
+          "workflow": {
+            "id": "5YuysH1OpiE13dtH",
+            "name": "Polina test"
+          }
+        }
+      }
+    ],
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "mystay.app.n8n.cloud",
+            "user-agent": "Amazon Simple Notification Service Agent",
+            "content-length": "440",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "54.239.6.104",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "DE",
+            "cf-ray": "9cb27598b7f839c7-FRA",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "text/plain; charset=UTF-8",
+            "x-amz-sns-message-id": "7e6561a2-13cb-544e-a8ce-03a1a3ca92e2",
+            "x-amz-sns-message-type": "Notification",
+            "x-amz-sns-rawdelivery": "true",
+            "x-amz-sns-subscription-arn": "arn:aws:sns:eu-central-1:960256472599:hostify-webhook-go-700000252-message_new:4c66994f-c24e-486e-877a-1a72eb812dca",
+            "x-amz-sns-topic-arn": "arn:aws:sns:eu-central-1:960256472599:hostify-webhook-go-700000252-message_new",
+            "x-forwarded-for": "54.239.6.104, 162.158.94.187",
+            "x-forwarded-host": "mystay.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-9-7bb7d4c57c-5brtv",
+            "x-is-trusted": "yes",
+            "x-real-ip": "54.239.6.104"
+          },
+          "params": {},
+          "query": {},
+          "body": "{\"thread_id\":\"701239893\",\"message_id\":714345342,\"message\":\"guesttest : do you have any available apartments from 24 till 27 February ?\",\"guest_id\":\"700341189\",\"created\":\"2026-02-09 09:49:50\",\"sent_by\":700001935,\"is_automatic\":0,\"is_sms\":false,\"is_incoming\":0,\"reservation_id\":\"701277073\",\"attachment_url\":null,\"type\":\"message\",\"listing_id\":\"700027906\",\"auth\":[\"hostify\",\"hostify\",\"hostify\",\"mystay_new_webhook_2025\"],\"action\":\"message_new\"}",
+          "webhookUrl": "https://mystay.app.n8n.cloud/webhook/hostify-new-messages",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Trigger": [
+      {
+        "json": {
+          "update_id": 387148344,
+          "message": {
+            "message_id": 79,
+            "from": {
+              "id": 973548246,
+              "is_bot": false,
+              "first_name": "Marina",
+              "is_premium": true
+            },
+            "chat": {
+              "id": -1003706358067,
+              "title": "MyStay Group",
+              "is_forum": true,
+              "type": "supergroup"
+            },
+            "date": 1771498064,
+            "message_thread_id": 24,
+            "reply_to_message": {
+              "message_id": 24,
+              "from": {
+                "id": 392363341,
+                "is_bot": false,
+                "first_name": "Alexander",
+                "username": "ostrovoy",
+                "language_code": "en",
+                "is_premium": true
+              },
+              "chat": {
+                "id": -1003706358067,
+                "title": "MyStay Group",
+                "is_forum": true,
+                "type": "supergroup"
+              },
+              "date": 1771053913,
+              "message_thread_id": 24,
+              "forum_topic_created": {
+                "name": "208",
+                "icon_color": 16766590
+              },
+              "is_topic_message": true
+            },
+            "media_group_id": "14171984518736090",
+            "photo": [
+              {
+                "file_id": "AgACAgIAAyEFAATc6okzAANPaZbqUDipirACavG3eq5gaZEi5uwAAqQTaxteMrlIZyCi7sBf99cBAAMCAANzAAM6BA",
+                "file_unique_id": "AQADpBNrG14yuUh4",
+                "file_size": 1349,
+                "width": 90,
+                "height": 67
+              },
+              {
+                "file_id": "AgACAgIAAyEFAATc6okzAANPaZbqUDipirACavG3eq5gaZEi5uwAAqQTaxteMrlIZyCi7sBf99cBAAMCAANtAAM6BA",
+                "file_unique_id": "AQADpBNrG14yuUhy",
+                "file_size": 15198,
+                "width": 320,
+                "height": 240
+              },
+              {
+                "file_id": "AgACAgIAAyEFAATc6okzAANPaZbqUDipirACavG3eq5gaZEi5uwAAqQTaxteMrlIZyCi7sBf99cBAAMCAAN4AAM6BA",
+                "file_unique_id": "AQADpBNrG14yuUh9",
+                "file_size": 63802,
+                "width": 800,
+                "height": 600
+              },
+              {
+                "file_id": "AgACAgIAAyEFAATc6okzAANPaZbqUDipirACavG3eq5gaZEi5uwAAqQTaxteMrlIZyCi7sBf99cBAAMCAAN5AAM6BA",
+                "file_unique_id": "AQADpBNrG14yuUh-",
+                "file_size": 112077,
+                "width": 1280,
+                "height": 960
+              }
+            ],
+            "is_topic_message": true
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Webhook_tenant_sync": [
+      {
+        "json": {
+          "headers": {
+            "host": "mystay.app.n8n.cloud",
+            "user-agent": "node",
+            "content-length": "216",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "*",
+            "cache-control": "no-cache",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "54.224.33.130",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "9e55dc6ec89ee93c-IAD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "pragma": "no-cache",
+            "sec-fetch-mode": "cors",
+            "x-cohost-idempotency-key": "af97ecaa-3329-499e-b66e-efc3a7f88b80",
+            "x-cohost-signature": "7a9d8561417b79f106e464bc5a1490c057742debc0b5f885cca7bb9a1f710de4",
+            "x-cohost-timestamp": "1775028338878",
+            "x-forwarded-for": "54.224.33.130, 104.23.211.184",
+            "x-forwarded-host": "mystay.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-9-59b5467d9c-22h6f",
+            "x-invocation-id": "bom1::bdzxj-1775028333639-23da8287959f",
+            "x-is-trusted": "yes",
+            "x-real-ip": "54.224.33.130",
+            "x-vercel-id": "bom1::bdzxj-1775028333639-23da8287959f"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "tenant_config_sync",
+            "tenantId": "432ebc75-c998-438a-8fe4-9ee04da78546",
+            "mode": "draft",
+            "telegramChatId": "-1003706358067",
+            "hostifyApiKey": "mq3cibuZEvDRvSn3q3xOMYgJ0JpwNOkG",
+            "sentAt": "2026-04-01T07:25:38.878Z"
+          },
+          "webhookUrl": "https://mystay.app.n8n.cloud/webhook/cohost/tenant-sync",
+          "executionMode": "production"
+        },
+        "binary": {
+          "data": {
+            "data": "eyJldmVudCI6InRlbmFudF9jb25maWdfc3luYyIsInRlbmFudElkIjoiNDMyZWJjNzUtYzk5OC00MzhhLThmZTQtOWVlMDRkYTc4NTQ2IiwibW9kZSI6ImRyYWZ0IiwidGVsZWdyYW1DaGF0SWQiOiItMTAwMzcwNjM1ODA2NyIsImhvc3RpZnlBcGlLZXkiOiJtcTNjaWJ1WkV2RFJ2U24zcTN4T01ZZ0owSnB3Tk9rRyIsInNlbnRBdCI6IjIwMjYtMDQtMDFUMDc6MjU6MzguODc4WiJ9",
+            "mimeType": "application/json"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "JARVIS HOSTIFY": {
+      "main": [
+        [
+          {
+            "node": "Code after Jarvis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "SEND Jennys reply  to HOSTIFY",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Code after Jarvis": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HOSTIFY Request  Messages": {
+      "main": [
+        [
+          {
+            "node": "ifNotLatestMeccageThenStop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare thread data for Jarvis": {
+      "main": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If message_new Or automatic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "forward message to Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait X minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Adapter_to_Old_Logic": {
+      "main": [
+        [
+          {
+            "node": "HOSTIFY Request  Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If message_new Or automatic": {
+      "main": [
+        [
+          {
+            "node": "Code_Adapter_to_Old_Logic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "ifNotLatestMeccageThenStop": {
+      "main": [
+        [
+          {
+            "node": "Prepare thread data for Jarvis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build_Error_Alert_Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTPR Calendar Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "translateMessage": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetListingDetailsTool": {
+      "ai_tool": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getReservationTool": {
+      "ai_tool": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait X minutes": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global_Instructions_Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND Jennys reply  to HOSTIFY": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest_Alerts_Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "JARVIS HOSTIFY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Team_Messages_Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JARVIS HOSTIFY2": {
+      "main": [
+        [
+          {
+            "node": "Code in Python (Native) (Beta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "If_Bot_alowed_to_Reply_In_chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If_Bot_alowed_to_Reply_In_chat": {
+      "main": [
+        [
+          {
+            "node": "JARVIS HOSTIFY2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook_tenant_sync": {
+      "main": [
+        [
+          {
+            "node": "Process_Tenant_Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process_Tenant_Sync": {
+      "main": [
+        [
+          {
+            "node": "Respond_to_Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build_Error_Alert_Context": {
+      "main": [
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1124c2b3-2fcc-4e28-a0e9-88550e2b9734",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "22490287568dbcefdcc941437e5ca2a776cb81e89b7963279affbd9b63254644"
+  },
+  "id": "FBBAfc1E5wK4fbTO",
+  "tags": [
+    {
+      "updatedAt": "2025-06-08T06:53:49.079Z",
+      "createdAt": "2025-06-08T06:53:49.079Z",
+      "id": "FjkmTP8JQP2mMoZt",
+      "name": "Jenny AI Assistant"
+    }
+  ]
+}

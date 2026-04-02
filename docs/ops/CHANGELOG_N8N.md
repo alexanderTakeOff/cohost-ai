@@ -48,3 +48,18 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - Apply guide created at `docs/ops/n8n/A2_APPLY_GUIDE.md`
 - Rollback reference:
   - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
+
+- Date (UTC): 2026-04-02
+- Operator: Cursor
+- Workflow: `cohost-tenant-sync`
+- Node(s): `HOSTIFY Request  Messages`, `HTTPR Calendar Tool`, `GetListingDetailsTool`, `getReservationTool`, `SEND Jennys reply  to HOSTIFY`
+- Change summary:
+  - Prepared A1 patch artifact to replace hardcoded `x-api-key` values with n8n Cloud variable expression.
+  - Standardized Hostify auth header value to `{{$vars.HOSTIFY_API_KEY}}` across runtime Hostify HTTP nodes.
+- Reason:
+  - Remove hardcoded secrets and centralize key management for safer operations.
+- Verification:
+  - Patch artifact generated at `docs/ops/n8n/cohost-tenant-sync.A1-key-centralization.json`
+  - Apply guide created at `docs/ops/n8n/A1_APPLY_GUIDE.md`
+- Rollback reference:
+  - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
