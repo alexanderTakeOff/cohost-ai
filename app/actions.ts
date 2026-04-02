@@ -10,6 +10,7 @@ import {
   addTenantEvent,
   getDecryptedHostifyKey,
   getTenantForCurrentUser,
+  upsertHostAccountListing,
   upsertTenantForCurrentUser,
 } from "@/lib/tenant/server";
 import type { TenantMode } from "@/lib/tenant/types";
@@ -34,6 +35,13 @@ function getFormValue(formData: FormData, name: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function parseListingIds(value: string) {
+  return value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export async function saveOnboarding(
   _prevState: ActionResult,
   formData: FormData,
@@ -43,6 +51,7 @@ export async function saveOnboarding(
     const hostifyApiKey = getFormValue(formData, "hostifyApiKey");
     const telegramChatId = getFormValue(formData, "telegramChatId");
     const mode = getFormValue(formData, "mode") as TenantMode;
+    const listingIds = parseListingIds(getFormValue(formData, "listingIds"));
 
     if (!telegramChatId) {
       return {
@@ -64,9 +73,14 @@ export async function saveOnboarding(
       mode,
     });
 
+    for (const listingId of listingIds) {
+      await upsertHostAccountListing(tenant.id, listingId);
+    }
+
     await addTenantEvent(tenant.id, "onboarding_saved", {
       mode: tenant.mode,
       telegramChatId: tenant.telegram_chat_id,
+      listingIds,
     });
 
     if (hasN8nEnv()) {

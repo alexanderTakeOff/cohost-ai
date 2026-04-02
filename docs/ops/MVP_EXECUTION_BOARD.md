@@ -1,6 +1,6 @@
 # Cohost AI MVP Execution Board
 
-Last Updated: 2026-04-01  
+Last Updated: 2026-04-02  
 Source of Truth: This file is the canonical execution tracker for MVP operations and delivery.
 
 ## Status Legend
@@ -14,10 +14,10 @@ Source of Truth: This file is the canonical execution tracker for MVP operations
 
 | ID | Task | Status | Acceptance Criteria | Risk | Owner | Evidence / Notes |
 |---|---|---|---|---|---|---|
-| A1 | Remove hardcoded Hostify API keys in n8n HTTP nodes | IN_PROGRESS | No `x-api-key` literal values remain in runtime Hostify nodes; values come from centralized config/variable | Medium | Team | A1 patch artifact prepared: `docs/ops/n8n/cohost-tenant-sync.A1-key-centralization.json` + apply guide |
+| A1 | Remove hardcoded Hostify API keys in n8n HTTP nodes | DONE | No `x-api-key` literal values remain in runtime Hostify nodes; values come from centralized config/variable | Medium | Team | Applied in n8n with `{{$vars.HOSTIFY_API_KEY}}` on 5 runtime nodes; smoke test confirmed by operator |
 | A2 | Improve Telegram error alerts with full execution context | DONE | Error alert contains `workflow_name`, `workflow_id`, `execution_id`, `failed_node_name`, `error_message`, `tenant_id` (if available), and timestamp | Low | Team | Live alert sample confirmed with execution context in Telegram |
 | A3 | Protect webhook nodes from accidental edits | IN_PROGRESS | Webhook nodes listed in protected inventory; runbook explicitly forbids changing `path`/`webhookId` without ADR | Low | Team | Policy captured in `N8N_RUNBOOK.md` + `N8N_PROTECTED_NODES.md` |
-| A4 | Align runtime Hostify calls with tenant-specific config | PLANNED | Runtime flow resolves tenant config before Hostify calls (no static key path) | High | Team | Depends on A1 design choice |
+| A4 | Align runtime Hostify calls with host-account-specific config | IN_PROGRESS | Runtime flow resolves host-account config by `listing_id` before Hostify calls | High | Team | Backend resolver + mapping schema + n8n patch artifacts prepared in this chunk |
 | A5 | Standardize event taxonomy (`guest_message`, `ai_reply`, `n8n_sync_ok/error`) | PLANNED | Dashboard metrics and n8n callbacks use consistent event types | Medium | Team | Required for trustworthy metrics |
 
 ## Recently Completed Product Chunks

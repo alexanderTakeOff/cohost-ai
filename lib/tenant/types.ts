@@ -17,3 +17,13 @@ export type TenantMetrics = {
   guestMessages: number;
   lastEventAt: string | null;
 };
+
+export type HostAccountListingRecord = {
+  id: string;
+  tenant_id: string;
+  listing_id: string;
+  hostify_account_ref: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};

@@ -63,3 +63,20 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - Apply guide created at `docs/ops/n8n/A1_APPLY_GUIDE.md`
 - Rollback reference:
   - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
+
+- Date (UTC): 2026-04-02
+- Operator: Cursor
+- Workflow: `cohost-tenant-sync`
+- Node(s): `Build_Runtime_Config_Request`, `Sign_Runtime_Config_Request`, `Resolve_Runtime_Config`, `Normalize_Runtime_Config`, Hostify runtime HTTP nodes
+- Change summary:
+  - Prepared A4 backend + n8n patch artifacts for runtime host-account config resolution by `listing_id`.
+  - Added signed resolver call to app endpoint and normalized runtime config object for downstream nodes.
+  - Updated runtime Hostify headers to use resolved key `{{$json.runtime_config.hostifyApiKey}}`.
+- Reason:
+  - Move from single global Hostify key to per-host-account runtime routing.
+- Verification:
+  - Patch artifact generated at `docs/ops/n8n/cohost-tenant-sync.A4-runtime-resolver.json`
+  - Apply guide created at `docs/ops/n8n/A4_APPLY_GUIDE.md`
+  - Backend resolver route added at `app/api/n8n/runtime-config/route.ts`
+- Rollback reference:
+  - Restore prior workflow version and keep A1 key variable mode until A4 is validated.
