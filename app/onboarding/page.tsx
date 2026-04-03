@@ -44,7 +44,7 @@ export default async function OnboardingPage() {
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold">Onboarding</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Configure account, listings, and assistant behavior in separate tabs.
+            Configure account, listings, assistant behavior, and economics in separate tabs.
           </p>
         </header>
 

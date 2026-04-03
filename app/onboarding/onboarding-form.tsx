@@ -3,7 +3,12 @@
 import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { refreshListings, saveOnboarding, toggleListingActive } from "@/app/actions";
+import {
+  refreshListings,
+  saveEconomicAssumptions,
+  saveOnboarding,
+  toggleListingActive,
+} from "@/app/actions";
 import type { HostAccountListingRecord, TenantRecord } from "@/lib/tenant/types";
 
 type FormState = {
@@ -16,7 +21,7 @@ const initialState: FormState = {
   success: null,
 };
 
-type OnboardingTab = "account" | "listings" | "assistant";
+type OnboardingTab = "account" | "listings" | "assistant" | "economics";
 
 function TabButton({
   active,
@@ -53,14 +58,18 @@ export function OnboardingForm({
   const [state, action, isPending] = useActionState(saveOnboarding, initialState);
   const [refreshState, refreshAction, isRefreshing] = useActionState(refreshListings, initialState);
   const [toggleState, toggleAction, isToggling] = useActionState(toggleListingActive, initialState);
+  const [economicsState, economicsAction, isEconomicsPending] = useActionState(
+    saveEconomicAssumptions,
+    initialState,
+  );
   const [activeTab, setActiveTab] = useState<OnboardingTab>(tenant ? "listings" : "account");
   const hostifyRequired = !tenant?.hostify_api_key_encrypted;
 
   useEffect(() => {
-    if (state.success || refreshState.success || toggleState.success) {
+    if (state.success || refreshState.success || toggleState.success || economicsState.success) {
       router.refresh();
     }
-  }, [router, state.success, refreshState.success, toggleState.success]);
+  }, [router, state.success, refreshState.success, toggleState.success, economicsState.success]);
 
   return (
     <div className="space-y-6">
@@ -98,6 +107,9 @@ export function OnboardingForm({
         </TabButton>
         <TabButton active={activeTab === "assistant"} onClick={() => setActiveTab("assistant")}>
           Assistant
+        </TabButton>
+        <TabButton active={activeTab === "economics"} onClick={() => setActiveTab("economics")}>
+          Economics
         </TabButton>
       </div>
 
@@ -317,6 +329,66 @@ export function OnboardingForm({
           ) : null}
           {state.success ? (
             <p className="text-sm text-emerald-700 dark:text-emerald-300">{state.success}</p>
+          ) : null}
+        </form>
+      ) : null}
+
+      {activeTab === "economics" ? (
+        <form
+          action={economicsAction}
+          className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15"
+        >
+          <div className="space-y-2">
+            <label htmlFor="laborCostPerHourUsd" className="block text-sm font-medium">
+              Labor cost per hour (USD)
+            </label>
+            <input
+              id="laborCostPerHourUsd"
+              name="laborCostPerHourUsd"
+              type="number"
+              min={0}
+              step="0.01"
+              defaultValue={tenant?.labor_hourly_rate_usd ?? 0}
+              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Used for estimated labor savings calculation.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="avgHandleMinutesPerMessage" className="block text-sm font-medium">
+              Average handling minutes per message
+            </label>
+            <input
+              id="avgHandleMinutesPerMessage"
+              name="avgHandleMinutesPerMessage"
+              type="number"
+              min={0}
+              step="0.1"
+              defaultValue={tenant?.avg_handle_minutes_per_message ?? 0}
+              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Interpreted as manual work replaced by each AI reply.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={isEconomicsPending}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+            >
+              {isEconomicsPending ? "Saving..." : "Save economics settings"}
+            </button>
+          </div>
+
+          {economicsState.error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{economicsState.error}</p>
+          ) : null}
+          {economicsState.success ? (
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">{economicsState.success}</p>
           ) : null}
         </form>
       ) : null}

@@ -18,7 +18,16 @@ Source of Truth: This file is the canonical execution tracker for MVP operations
 | A2 | Improve Telegram error alerts with full execution context | DONE | Error alert contains `workflow_name`, `workflow_id`, `execution_id`, `failed_node_name`, `error_message`, `tenant_id` (if available), and timestamp | Low | Team | Live alert sample confirmed with execution context in Telegram |
 | A3 | Protect webhook nodes from accidental edits | IN_PROGRESS | Webhook nodes listed in protected inventory; runbook explicitly forbids changing `path`/`webhookId` without ADR | Low | Team | Policy captured in `N8N_RUNBOOK.md` + `N8N_PROTECTED_NODES.md` |
 | A4 | Align runtime Hostify calls with host-account-specific config | IN_PROGRESS | Runtime flow resolves host-account config by `listing_id` before Hostify calls | High | Team | Backend resolver + mapping schema + n8n patch artifacts prepared; A4.1 added auto-sync listings from Hostify API and onboarding listings UI (enable/disable); A6 adds tenant-level `global_instructions` in onboarding + runtime-config response |
-| A5 | Standardize event taxonomy (`guest_message`, `ai_reply`, `n8n_sync_ok/error`) | IN_PROGRESS | Dashboard metrics and n8n callbacks use consistent event types | Medium | Team | A5 Telegram runtime-routing artifact prepared (`docs/ops/n8n/cohost-tenant-sync.A5-telegram-runtime-routing.json`) with apply guide; taxonomy finalization still pending |
+| A5 | Standardize event taxonomy (`guest_message`, `ai_reply`, `n8n_sync_ok/error`) | DONE | Dashboard metrics and n8n callbacks use consistent event types | Medium | Team | Canonical taxonomy implemented in app (`lib/tenant/events.ts`), callback route now canonicalizes external eventType aliases, payload enrichment normalized for app and n8n callback sources |
+
+## Current Implementation Chunks (Economics)
+
+| ID | Task | Status | Acceptance Criteria | Risk | Owner | Evidence / Notes |
+|---|---|---|---|---|---|---|
+| C2 | Event taxonomy + payload contract hardening | DONE | Canonical event list + normalized payload fields used across emitters and callback ingestion | Medium | Team | `lib/tenant/events.ts`, `app/actions.ts`, `app/api/n8n/tenant-events/route.ts` |
+| C3 | AI cost telemetry aggregation | DONE | `aiCostUsd`, `aiInputTokens`, `aiOutputTokens` aggregated from `ai_reply` events | Medium | Team | `getTenantMetrics`, `getTenantEconomicsMetrics`, listing economics aggregation |
+| C4 | Tenant economic assumptions | DONE | Tenant stores labor/hour + avg minutes/message and formulas produce labor-saved + net value | Medium | Team | migration `supabase/2026-04-03-a7-tenant-economic-assumptions.sql`, onboarding economics tab save action |
+| C5 | MVP economics UI | DONE | Dashboard shows cost/savings/net + listing-level table; onboarding has economics settings tab | Medium | Team | `app/dashboard/page.tsx`, `app/onboarding/onboarding-form.tsx` |
 
 ## Recently Completed Product Chunks
 

@@ -6,6 +6,8 @@ export type TenantRecord = {
   hostify_api_key_encrypted: string | null;
   telegram_chat_id: string | null;
   global_instructions: string | null;
+  labor_hourly_rate_usd: number | null;
+  avg_handle_minutes_per_message: number | null;
   mode: TenantMode;
   is_active: boolean;
   created_at: string;
@@ -16,7 +18,38 @@ export type TenantMetrics = {
   totalEvents: number;
   aiReplies: number;
   guestMessages: number;
+  aiCostUsd: number;
+  aiInputTokens: number;
+  aiOutputTokens: number;
   lastEventAt: string | null;
+};
+
+export type TenantEconomicsMetrics = {
+  guestMessages: number;
+  aiReplies: number;
+  aiCostUsd: number;
+  aiInputTokens: number;
+  aiOutputTokens: number;
+  laborRateUsd: number;
+  avgHandleMinutesPerMessage: number;
+  estimatedHoursSaved: number;
+  estimatedLaborSavedUsd: number;
+  netValueUsd: number;
+};
+
+export type ListingEconomicsRow = {
+  listingId: string;
+  guestMessages: number;
+  aiReplies: number;
+  aiCostUsd: number;
+};
+
+export type AiCostEstimation = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
 };
 
 export type HostAccountListingRecord = {

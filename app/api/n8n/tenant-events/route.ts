@@ -4,6 +4,11 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { getN8nEnv } from "@/lib/n8n/env";
 import { signPayload } from "@/lib/n8n/signer";
+import {
+  canonicalizeExternalEventType,
+  enrichEventPayload,
+  type TenantEventType,
+} from "@/lib/tenant/events";
 import { addTenantEventWithAdmin } from "@/lib/tenant/server";
 
 function safeEqual(a: string, b: string) {
@@ -43,10 +48,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "tenantId and eventType are required." }, { status: 400 });
     }
 
+    const canonicalEventType = canonicalizeExternalEventType(payload.eventType) as TenantEventType;
+    const enrichedPayload = enrichEventPayload(payload.payload ?? {}, {
+      tenantId: payload.tenantId,
+      source: "n8n_callback",
+    });
+
     await addTenantEventWithAdmin(
       payload.tenantId,
-      payload.eventType,
-      payload.payload ?? {},
+      canonicalEventType,
+      enrichedPayload,
       idempotencyKey,
     );
 

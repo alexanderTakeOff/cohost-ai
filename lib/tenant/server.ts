@@ -3,7 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { parseTenantMode } from "./validators";
+import { type CanonicalEventType, normalizeTenantEventPayload } from "./events";
 import type {
+  AiCostEstimation,
+  ListingEconomicsRow,
+  TenantEconomicsMetrics,
   HostAccountListingRecord,
   TenantMetrics,
   TenantMode,
@@ -303,7 +307,7 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
 
   const { data, error } = await supabase
     .from("tenant_events")
-    .select("event_type,created_at")
+    .select("event_type,created_at,payload")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -315,10 +319,26 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
   const events = data ?? [];
   let aiReplies = 0;
   let guestMessages = 0;
+  let aiCostUsd = 0;
+  let aiInputTokens = 0;
+  let aiOutputTokens = 0;
 
   for (const event of events) {
     if (event.event_type === "ai_reply") {
       aiReplies += 1;
+      const payload = (event.payload ?? {}) as Record<string, unknown>;
+      const costValue = payload.aiCostUsd;
+      const inputTokens = payload.aiInputTokens;
+      const outputTokens = payload.aiOutputTokens;
+      if (typeof costValue === "number" && Number.isFinite(costValue)) {
+        aiCostUsd += costValue;
+      }
+      if (typeof inputTokens === "number" && Number.isFinite(inputTokens)) {
+        aiInputTokens += inputTokens;
+      }
+      if (typeof outputTokens === "number" && Number.isFinite(outputTokens)) {
+        aiOutputTokens += outputTokens;
+      }
     }
     if (event.event_type === "guest_message") {
       guestMessages += 1;
@@ -329,21 +349,28 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
     totalEvents: events.length,
     aiReplies,
     guestMessages,
+    aiCostUsd,
+    aiInputTokens,
+    aiOutputTokens,
     lastEventAt: events[0]?.created_at ?? null,
   };
 }
 
 export async function addTenantEvent(
   tenantId: string,
-  eventType: string,
+  eventType: CanonicalEventType,
   payload: Record<string, unknown>,
   idempotencyKey?: string,
 ) {
   const supabase = await createClient();
+  const normalizedPayload = normalizeTenantEventPayload(eventType, payload, {
+    tenantId,
+    source: "app",
+  });
   const insertPayload = {
     tenant_id: tenantId,
     event_type: eventType,
-    payload,
+    payload: normalizedPayload,
     idempotency_key: idempotencyKey ?? null,
   };
 
@@ -356,15 +383,19 @@ export async function addTenantEvent(
 
 export async function addTenantEventWithAdmin(
   tenantId: string,
-  eventType: string,
+  eventType: CanonicalEventType,
   payload: Record<string, unknown>,
   idempotencyKey?: string,
 ) {
   const supabase = createAdminClient();
+  const normalizedPayload = normalizeTenantEventPayload(eventType, payload, {
+    tenantId,
+    source: "n8n_callback",
+  });
   const insertPayload = {
     tenant_id: tenantId,
     event_type: eventType,
-    payload,
+    payload: normalizedPayload,
     idempotency_key: idempotencyKey ?? null,
   };
 
@@ -372,6 +403,209 @@ export async function addTenantEventWithAdmin(
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export async function getTenantEconomicsMetrics(tenantId: string): Promise<TenantEconomicsMetrics> {
+  const supabase = await createClient();
+  const { data: tenant, error: tenantError } = await supabase
+    .from("tenants")
+    .select("*")
+    .eq("id", tenantId)
+    .maybeSingle<TenantRecord>();
+  if (tenantError) {
+    throw new Error(tenantError.message);
+  }
+  if (!tenant) {
+    throw new Error("Tenant not found.");
+  }
+
+  const { data, error } = await supabase
+    .from("tenant_events")
+    .select("event_type,payload")
+    .eq("tenant_id", tenantId)
+    .in("event_type", ["guest_message", "ai_reply"]);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  let guestMessages = 0;
+  let aiReplies = 0;
+  let aiCostUsd = 0;
+  let aiInputTokens = 0;
+  let aiOutputTokens = 0;
+
+  for (const event of data ?? []) {
+    if (event.event_type === "guest_message") {
+      guestMessages += 1;
+      continue;
+    }
+    if (event.event_type === "ai_reply") {
+      aiReplies += 1;
+      const payload = (event.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.aiCostUsd === "number" && Number.isFinite(payload.aiCostUsd)) {
+        aiCostUsd += payload.aiCostUsd;
+      }
+      if (typeof payload.aiInputTokens === "number" && Number.isFinite(payload.aiInputTokens)) {
+        aiInputTokens += payload.aiInputTokens;
+      }
+      if (typeof payload.aiOutputTokens === "number" && Number.isFinite(payload.aiOutputTokens)) {
+        aiOutputTokens += payload.aiOutputTokens;
+      }
+    }
+  }
+
+  const laborRate = Number(tenant.labor_hourly_rate_usd ?? 0);
+  const avgMinutes = Number(tenant.avg_handle_minutes_per_message ?? 0);
+  const estimatedHoursSaved = aiReplies * (avgMinutes / 60);
+  const estimatedLaborSavedUsd = estimatedHoursSaved * laborRate;
+  const netValueUsd = estimatedLaborSavedUsd - aiCostUsd;
+
+  return {
+    guestMessages,
+    aiReplies,
+    aiCostUsd,
+    aiInputTokens,
+    aiOutputTokens,
+    laborRateUsd: laborRate,
+    avgHandleMinutesPerMessage: avgMinutes,
+    estimatedHoursSaved,
+    estimatedLaborSavedUsd,
+    netValueUsd,
+  };
+}
+
+export async function getListingEconomicsForCurrentUser(): Promise<ListingEconomicsRow[]> {
+  const tenant = await getTenantForCurrentUser();
+  if (!tenant) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tenant_events")
+    .select("event_type,payload")
+    .eq("tenant_id", tenant.id)
+    .in("event_type", ["guest_message", "ai_reply"]);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const map = new Map<string, ListingEconomicsRow>();
+  for (const event of data ?? []) {
+    const payload = (event.payload ?? {}) as Record<string, unknown>;
+    const listingId =
+      typeof payload.listingId === "string"
+        ? payload.listingId
+        : typeof payload.listing_id === "string"
+          ? payload.listing_id
+          : null;
+    if (!listingId) {
+      continue;
+    }
+
+    const row =
+      map.get(listingId) ??
+      ({
+        listingId,
+        guestMessages: 0,
+        aiReplies: 0,
+        aiCostUsd: 0,
+      } satisfies ListingEconomicsRow);
+
+    if (event.event_type === "guest_message") {
+      row.guestMessages += 1;
+    } else if (event.event_type === "ai_reply") {
+      row.aiReplies += 1;
+      if (typeof payload.aiCostUsd === "number" && Number.isFinite(payload.aiCostUsd)) {
+        row.aiCostUsd += payload.aiCostUsd;
+      }
+    }
+
+    map.set(listingId, row);
+  }
+
+  return [...map.values()].sort((a, b) => a.listingId.localeCompare(b.listingId));
+}
+
+export async function updateTenantEconomicsSettingsForCurrentUser(input: {
+  laborRateUsd: number;
+  avgMinutesPerMessage: number;
+}) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("You must be logged in.");
+  }
+
+  const laborRate = Number.isFinite(input.laborRateUsd) ? Math.max(input.laborRateUsd, 0) : 0;
+  const avgMinutes = Number.isFinite(input.avgMinutesPerMessage)
+    ? Math.max(input.avgMinutesPerMessage, 0)
+    : 0;
+
+  const supabase = await createClient();
+  const firstAttempt = await supabase
+    .from("tenants")
+    .update({
+      labor_hourly_rate_usd: laborRate,
+      avg_handle_minutes_per_message: avgMinutes,
+    })
+    .eq("user_id", userId)
+    .select("*")
+    .single<TenantRecord>();
+
+  if (!firstAttempt.error) {
+    return firstAttempt.data;
+  }
+
+  const isLegacySchemaError =
+    isMissingColumnError(firstAttempt.error, "labor_hourly_rate_usd") ||
+    isMissingColumnError(firstAttempt.error, "avg_handle_minutes_per_message");
+  if (!isLegacySchemaError) {
+    throw new Error(firstAttempt.error.message);
+  }
+
+  const fallbackAttempt = await supabase
+    .from("tenants")
+    .select("*")
+    .eq("user_id", userId)
+    .single<TenantRecord>();
+  if (fallbackAttempt.error) {
+    throw new Error(fallbackAttempt.error.message);
+  }
+  return fallbackAttempt.data;
+}
+
+export function estimateAiCostFromUsage(input: {
+  model?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+}): AiCostEstimation {
+  const model = (input.model ?? "unknown").toString();
+  const inputTokens = Number(input.inputTokens ?? 0);
+  const outputTokens = Number(input.outputTokens ?? 0);
+  const totalTokens =
+    Number(input.totalTokens ?? 0) || (Number.isFinite(inputTokens) ? inputTokens : 0) + (Number.isFinite(outputTokens) ? outputTokens : 0);
+
+  const safeInput = Number.isFinite(inputTokens) && inputTokens > 0 ? inputTokens : 0;
+  const safeOutput = Number.isFinite(outputTokens) && outputTokens > 0 ? outputTokens : 0;
+  const safeTotal = Number.isFinite(totalTokens) && totalTokens > 0 ? totalTokens : safeInput + safeOutput;
+
+  const ratesByModel: Record<string, { inPer1k: number; outPer1k: number }> = {
+    "gpt-4o-mini": { inPer1k: 0.00015, outPer1k: 0.0006 },
+    "gpt-4o": { inPer1k: 0.005, outPer1k: 0.015 },
+  };
+  const rates = ratesByModel[model] ?? ratesByModel["gpt-4o-mini"];
+  const estimatedCostUsd = (safeInput / 1000) * rates.inPer1k + (safeOutput / 1000) * rates.outPer1k;
+
+  return {
+    model,
+    inputTokens: safeInput,
+    outputTokens: safeOutput,
+    totalTokens: safeTotal,
+    estimatedCostUsd,
+  };
 }
 
 export async function upsertHostAccountListing(
@@ -502,6 +736,52 @@ export async function updateTenantGlobalInstructionsForCurrentUser(globalInstruc
   }
 
   return data;
+}
+
+export async function updateTenantEconomicAssumptionsForCurrentUser(input: {
+  laborCostPerHourUsd: number;
+  avgHandleMinutesPerMessage: number;
+}) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("You must be logged in.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tenants")
+    .update({
+      labor_hourly_rate_usd: input.laborCostPerHourUsd,
+      avg_handle_minutes_per_message: input.avgHandleMinutesPerMessage,
+    })
+    .eq("user_id", userId)
+    .select("*")
+    .single<TenantRecord>();
+
+  if (!error) {
+    return data;
+  }
+
+  if (
+    !isMissingColumnError(error, "labor_hourly_rate_usd") &&
+    !isMissingColumnError(error, "avg_handle_minutes_per_message")
+  ) {
+    throw new Error(error.message);
+  }
+
+  // Backward compatibility before economic assumptions migration.
+  const { data: existingTenant, error: existingError } = await supabase
+    .from("tenants")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle<TenantRecord>();
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+  if (!existingTenant) {
+    throw new Error("Tenant not found.");
+  }
+  return existingTenant;
 }
 
 export async function setHostAccountListingActiveForCurrentUser(listingId: string, active: boolean) {

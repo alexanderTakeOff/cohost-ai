@@ -51,6 +51,25 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 
 - Date (UTC): 2026-04-03
 - Operator: Cursor
+- Workflow: App backend + metrics dashboard + onboarding economics tab (no direct n8n node edits)
+- Node(s): n/a
+- Change summary:
+  - Standardized app-side tenant event taxonomy through `lib/tenant/events.ts` with canonical types and alias mapping for external callbacks.
+  - Added normalized event payload enrichment (`tenantId`, `listingId`, `threadId`, `reservationId`, `eventVersion`, `emittedAt`) for consistent callbacks and internal events.
+  - Hardened `/api/n8n/tenant-events` to canonicalize incoming `eventType` values before writing to `tenant_events`.
+  - Added economics assumptions persistence fields in tenants (`labor_hourly_rate_usd`, `avg_handle_minutes_per_message`) via migration.
+  - Added economics aggregation in server layer and exposed MVP economics UI on dashboard (assistant cost, estimated saved labor, net value, listing-level breakdown).
+  - Added onboarding "Economics" tab to save tenant assumptions from UI.
+- Reason:
+  - Implement chunks C2/C3/C4/C5 for consistent event analytics and transparent economic value reporting per tenant/listing.
+- Verification:
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Rollback reference:
+  - Revert this chunk's commit and keep previous dashboard/onboarding metrics behavior.
+
+- Date (UTC): 2026-04-03
+- Operator: Cursor
 - Workflow: App backend + onboarding UI + runtime resolver contract
 - Node(s): n/a (no direct n8n node edits in this chunk)
 - Change summary:
