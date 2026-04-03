@@ -16,6 +16,155 @@ export type OnboardingInput = {
   mode: TenantMode;
 };
 
+type HostifyListingSyncRecord = {
+  listingId: string;
+  listingName: string | null;
+  channelListingId: string | null;
+  hostifyAccountRef: string | null;
+};
+
+type UpsertHostAccountListingInput = {
+  listingName?: string | null;
+  channelListingId?: string | null;
+  hostifyAccountRef?: string | null;
+  active?: boolean;
+  lastSeenAt?: string | null;
+};
+
+type HostifyListingsResponseEnvelope = {
+  listings?: unknown;
+  data?: unknown;
+  body?: unknown;
+  response?: unknown;
+};
+
+const HOSTIFY_LISTINGS_ENDPOINT = "https://api-rms.hostify.com/listings";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function toStringOrNull(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
+function pickListingArray(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!isRecord(payload)) {
+    return [];
+  }
+
+  const envelope = payload as HostifyListingsResponseEnvelope;
+
+  if (Array.isArray(envelope.listings)) {
+    return envelope.listings;
+  }
+  if (Array.isArray(envelope.data)) {
+    return envelope.data;
+  }
+  if (isRecord(envelope.data) && Array.isArray(envelope.data.listings)) {
+    return envelope.data.listings;
+  }
+  if (isRecord(envelope.body) && Array.isArray(envelope.body.listings)) {
+    return envelope.body.listings;
+  }
+  if (isRecord(envelope.response)) {
+    const response = envelope.response as HostifyListingsResponseEnvelope;
+    if (isRecord(response.body) && Array.isArray(response.body.listings)) {
+      return response.body.listings;
+    }
+    if (Array.isArray(response.listings)) {
+      return response.listings;
+    }
+  }
+
+  return [];
+}
+
+function normalizeHostifyListing(item: unknown): HostifyListingSyncRecord | null {
+  if (!isRecord(item)) {
+    return null;
+  }
+
+  const listingId = toStringOrNull(item.id);
+  if (!listingId) {
+    return null;
+  }
+
+  return {
+    listingId,
+    listingName: toStringOrNull(item.name),
+    channelListingId: toStringOrNull(
+      item.channel_listing_id ?? item.channelListingId ?? item.channel_id ?? item.channelId,
+    ),
+    hostifyAccountRef: toStringOrNull(
+      item.hostify_account_ref ?? item.hostifyAccountRef ?? item.account_id ?? item.accountId,
+    ),
+  };
+}
+
+async function fetchHostifyListings(hostifyApiKey: string): Promise<HostifyListingSyncRecord[]> {
+  const perPage = 50;
+  const maxPages = 100;
+  const allListings: HostifyListingSyncRecord[] = [];
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const url = new URL(HOSTIFY_LISTINGS_ENDPOINT);
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("per_page", String(perPage));
+    url.searchParams.set("include_related_objects", "1");
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": hostifyApiKey,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      throw new Error(
+        `Hostify listings fetch failed (${response.status}): ${responseText.slice(0, 500)}`,
+      );
+    }
+
+    const payload = (await response.json()) as unknown;
+    const pageItems = pickListingArray(payload);
+    const normalized = pageItems
+      .map((item) => normalizeHostifyListing(item))
+      .filter((item): item is HostifyListingSyncRecord => item !== null);
+
+    if (normalized.length === 0) {
+      break;
+    }
+
+    allListings.push(...normalized);
+
+    if (pageItems.length < perPage) {
+      break;
+    }
+  }
+
+  const deduped = new Map<string, HostifyListingSyncRecord>();
+  for (const listing of allListings) {
+    deduped.set(listing.listingId, listing);
+  }
+
+  return [...deduped.values()];
+}
+
 export async function getCurrentUserId() {
   const supabase = await createClient();
   const {
@@ -179,14 +328,17 @@ export async function addTenantEventWithAdmin(
 export async function upsertHostAccountListing(
   tenantId: string,
   listingId: string,
-  hostifyAccountRef?: string | null,
+  input?: UpsertHostAccountListingInput,
 ) {
   const supabase = createAdminClient();
   const payload = {
     tenant_id: tenantId,
     listing_id: listingId,
-    hostify_account_ref: hostifyAccountRef ?? null,
-    active: true,
+    listing_name: input?.listingName ?? null,
+    channel_listing_id: input?.channelListingId ?? null,
+    hostify_account_ref: input?.hostifyAccountRef ?? null,
+    active: input?.active ?? true,
+    last_seen_at: input?.lastSeenAt ?? null,
   };
 
   const { data, error } = await supabase
@@ -200,6 +352,168 @@ export async function upsertHostAccountListing(
   }
 
   return data;
+}
+
+export async function getHostAccountListingsForCurrentUser() {
+  const tenant = await getTenantForCurrentUser();
+  if (!tenant) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("host_account_listings")
+    .select("*")
+    .eq("tenant_id", tenant.id)
+    .order("listing_name", { ascending: true, nullsFirst: false })
+    .order("listing_id", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as HostAccountListingRecord[];
+}
+
+export async function setHostAccountListingActive(
+  tenantId: string,
+  listingId: string,
+  active: boolean,
+) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("host_account_listings")
+    .update({ active })
+    .eq("tenant_id", tenantId)
+    .eq("listing_id", listingId)
+    .select("*")
+    .single<HostAccountListingRecord>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function setHostAccountListingActiveForCurrentUser(listingId: string, active: boolean) {
+  const tenant = await getTenantForCurrentUser();
+  if (!tenant) {
+    throw new Error("You must be logged in.");
+  }
+
+  return setHostAccountListingActive(tenant.id, listingId, active);
+}
+
+function normalizeListingIds(values: string[]) {
+  const set = new Set<string>();
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (trimmed) {
+      set.add(trimmed);
+    }
+  }
+  return [...set];
+}
+
+export async function replaceHostAccountListingActiveSet(
+  tenantId: string,
+  activeListingIds: string[],
+) {
+  const normalizedIds = normalizeListingIds(activeListingIds);
+  const supabase = createAdminClient();
+
+  const { error: disableError } = await supabase
+    .from("host_account_listings")
+    .update({ active: false })
+    .eq("tenant_id", tenantId);
+
+  if (disableError) {
+    throw new Error(disableError.message);
+  }
+
+  if (normalizedIds.length === 0) {
+    return {
+      disabledAll: true,
+      activated: 0,
+    };
+  }
+
+  const { error: enableError } = await supabase
+    .from("host_account_listings")
+    .update({ active: true })
+    .eq("tenant_id", tenantId)
+    .in("listing_id", normalizedIds);
+
+  if (enableError) {
+    throw new Error(enableError.message);
+  }
+
+  return {
+    disabledAll: false,
+    activated: normalizedIds.length,
+  };
+}
+
+export async function replaceHostAccountListingActiveSetForCurrentUser(activeListingIds: string[]) {
+  const tenant = await getTenantForCurrentUser();
+  if (!tenant) {
+    throw new Error("You must be logged in.");
+  }
+
+  return replaceHostAccountListingActiveSet(tenant.id, activeListingIds);
+}
+
+export async function syncHostAccountListingsFromHostify(
+  tenantId: string,
+  hostifyApiKey: string,
+) {
+  const supabase = createAdminClient();
+  const { data: existingMappings, error: existingError } = await supabase
+    .from("host_account_listings")
+    .select("listing_id,active")
+    .eq("tenant_id", tenantId)
+    .returns<Array<{ listing_id: string; active: boolean }>>();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  const existingActiveMap = new Map<string, boolean>(
+    (existingMappings ?? []).map((row) => [row.listing_id, Boolean(row.active)]),
+  );
+
+  const listings = await fetchHostifyListings(hostifyApiKey);
+  if (listings.length === 0) {
+    return {
+      fetched: 0,
+      upserted: 0,
+    };
+  }
+
+  const syncedAt = new Date().toISOString();
+  const payload = listings.map((listing) => ({
+    tenant_id: tenantId,
+    listing_id: listing.listingId,
+    listing_name: listing.listingName,
+    channel_listing_id: listing.channelListingId,
+    hostify_account_ref: listing.hostifyAccountRef,
+    active: existingActiveMap.get(listing.listingId) ?? true,
+    last_seen_at: syncedAt,
+  }));
+
+  const { error: upsertError } = await supabase
+    .from("host_account_listings")
+    .upsert(payload, { onConflict: "tenant_id,listing_id" });
+
+  if (upsertError) {
+    throw new Error(upsertError.message);
+  }
+
+  return {
+    fetched: listings.length,
+    upserted: payload.length,
+  };
 }
 
 export async function resolveRuntimeConfigByListing(listingId: string) {

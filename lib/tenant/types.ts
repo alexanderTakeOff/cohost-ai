@@ -22,8 +22,11 @@ export type HostAccountListingRecord = {
   id: string;
   tenant_id: string;
   listing_id: string;
+  listing_name: string | null;
+  channel_listing_id: string | null;
   hostify_account_ref: string | null;
   active: boolean;
+  last_seen_at: string | null;
   created_at: string;
   updated_at: string;
 };

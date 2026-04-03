@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       await upsertHostAccountListing(
         resolved.tenant.id,
         payload.listingId,
-        payload.hostifyAccountRef,
+        { hostifyAccountRef: payload.hostifyAccountRef },
       );
     }
 

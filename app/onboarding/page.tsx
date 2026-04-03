@@ -4,6 +4,7 @@ import { hasN8nEnv } from "@/lib/n8n/env";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getHostAccountListingsForCurrentUser,
   getMaskedHostifyKey,
   getTenantForCurrentUser,
 } from "@/lib/tenant/server";
@@ -33,12 +34,13 @@ export default async function OnboardingPage() {
   }
 
   const tenant = await getTenantForCurrentUser();
+  const listings = await getHostAccountListingsForCurrentUser();
 
   const maskedKey = getMaskedHostifyKey(tenant);
 
   return (
     <main className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
-      <section className="w-full max-w-xl space-y-6 rounded-lg border border-black/10 bg-white p-8 shadow-sm dark:border-white/15 dark:bg-black">
+      <section className="w-full max-w-5xl space-y-6 rounded-lg border border-black/10 bg-white p-8 shadow-sm dark:border-white/15 dark:bg-black">
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold">Onboarding</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -56,7 +58,7 @@ export default async function OnboardingPage() {
           </p>
         ) : null}
 
-        <OnboardingForm tenant={tenant} />
+        <OnboardingForm tenant={tenant} listings={listings} />
 
         {!hasN8nEnv() ? (
           <p className="text-xs text-amber-700 dark:text-amber-300">
