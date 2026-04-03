@@ -14,8 +14,8 @@ The current system combines:
 
 Terminology note:
 
-- Historical term `tenant` in the codebase means **Host Account** (customer-side isolation unit), not rental guest.
-- See `docs/ops/GLOSSARY.md` for canonical terms.
+- Historical term `tenant` in the codebase means **Service Tenant** (customer-side isolation unit), not rental guest.
+- See `docs/ops/GLOSSARY.md` for canonical terms and `docs/ops/TERMINOLOGY_CORE_MODEL.md` for full model.
 
 The n8n workflow is already feature-rich and operationally complex (multiple triggers, agents, tools, code nodes).
 Immediate full rewrite into app code would introduce high regression risk and high implementation cost.

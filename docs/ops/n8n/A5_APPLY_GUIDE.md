@@ -1,0 +1,57 @@
+# A5 Apply Guide — Telegram runtime routing (tenant-aware)
+
+This step removes tenant Telegram hardcodes from workflow nodes and routes tenant-facing Telegram traffic via runtime config resolved by listing.
+
+## Goal
+
+For runtime message processing:
+
+- tenant-facing Telegram nodes use `runtime_config.telegramChatId`
+- platform-owner alerts stay isolated in dedicated global channels
+- hardcoded chat IDs are removed from workflow JSON
+
+## Patch file
+
+- `docs/ops/n8n/cohost-tenant-sync.A5-telegram-runtime-routing.json`
+
+## Required n8n variables
+
+Set these in n8n variables before activation:
+
+- `JENNY_OWNER_ALERT_CHAT_ID` — global owner incident chat
+- `JENNY_GLOBAL_INSTRUCTIONS_CHAT_ID` — global instructions source chat
+
+## Node mapping in this patch
+
+- `forward message to Telegram` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}`
+- `Guest_Alerts_Tool` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}`
+- `Team_Messages_Tool` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}`
+- `Error` -> `chatId = {{$vars.JENNY_OWNER_ALERT_CHAT_ID}}`
+- `Global_Instructions_Tool` -> `chatId = {{$vars.JENNY_GLOBAL_INSTRUCTIONS_CHAT_ID}}`
+
+## Safe apply (minimal manual)
+
+1. Open workflow `cohost-tenant-sync`.
+2. Duplicate workflow to draft.
+3. Import `cohost-tenant-sync.A5-telegram-runtime-routing.json`.
+4. Verify the 5 node mappings above.
+5. Save draft, run smoke checks, then promote.
+
+## Smoke test checklist
+
+1. Webhook event with mapped listing:
+   - `Normalize_Runtime_Config` returns non-empty `runtime_config.telegramChatId`.
+2. Tenant path:
+   - `forward message to Telegram` sends to tenant chat (not global).
+3. Agent escalation:
+   - `Guest_Alerts_Tool` posts into tenant chat.
+4. Team assistant path:
+   - `Team_Messages_Tool` posts into tenant chat/thread.
+5. Error path:
+   - `Error` alert still goes to owner alert channel.
+
+## Rollback
+
+1. Revert workflow to previous version in n8n version history.
+2. Re-run one runtime message smoke test.
+3. Record rollback in `docs/ops/CHANGELOG_N8N.md`.
