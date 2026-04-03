@@ -13,6 +13,7 @@ import type {
 export type OnboardingInput = {
   hostifyApiKey?: string;
   telegramChatId: string;
+  globalInstructions?: string | null;
   mode: TenantMode;
 };
 
@@ -250,11 +251,15 @@ export async function upsertTenantForCurrentUser(input: OnboardingInput) {
     user_id: userId,
     hostify_api_key_encrypted: encryptedHostifyKey,
     telegram_chat_id: input.telegramChatId,
+    global_instructions:
+      input.globalInstructions !== undefined
+        ? input.globalInstructions
+        : existingTenant?.global_instructions ?? null,
     mode: parseTenantMode(input.mode),
     is_active: true,
   };
 
-  const { data, error } = await supabase
+  const firstAttempt = await supabase
     .from("tenants")
     .upsert(payload, {
       onConflict: "user_id",
@@ -262,11 +267,35 @@ export async function upsertTenantForCurrentUser(input: OnboardingInput) {
     .select("*")
     .single<TenantRecord>();
 
-  if (error) {
-    throw new Error(error.message);
+  if (!firstAttempt.error) {
+    return firstAttempt.data;
   }
 
-  return data;
+  if (!isMissingColumnError(firstAttempt.error, "global_instructions")) {
+    throw new Error(firstAttempt.error.message);
+  }
+
+  // Backward compatibility: allow save before global_instructions migration is applied.
+  const legacyPayload = {
+    user_id: userId,
+    hostify_api_key_encrypted: encryptedHostifyKey,
+    telegram_chat_id: input.telegramChatId,
+    mode: parseTenantMode(input.mode),
+    is_active: true,
+  };
+  const legacyAttempt = await supabase
+    .from("tenants")
+    .upsert(legacyPayload, {
+      onConflict: "user_id",
+    })
+    .select("*")
+    .single<TenantRecord>();
+
+  if (legacyAttempt.error) {
+    throw new Error(legacyAttempt.error.message);
+  }
+
+  return legacyAttempt.data;
 }
 
 export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics> {
@@ -444,6 +473,29 @@ export async function setHostAccountListingActive(
     .eq("listing_id", listingId)
     .select("*")
     .single<HostAccountListingRecord>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function updateTenantGlobalInstructionsForCurrentUser(globalInstructions: string | null) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("You must be logged in.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tenants")
+    .update({
+      global_instructions: globalInstructions,
+    })
+    .eq("user_id", userId)
+    .select("*")
+    .single<TenantRecord>();
 
   if (error) {
     throw new Error(error.message);

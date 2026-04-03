@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       hostifyAccountRef: resolved.mapping.hostify_account_ref,
       mode: resolved.tenant.mode,
       telegramChatId: resolved.tenant.telegram_chat_id,
+      globalInstructions: resolved.tenant.global_instructions,
       hostifyApiKey: resolved.hostifyApiKey,
       context: {
         threadId: payload.threadId ?? null,

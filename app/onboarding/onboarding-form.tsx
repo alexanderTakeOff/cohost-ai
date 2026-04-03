@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { refreshListings, saveOnboarding, toggleListingActive } from "@/app/actions";
@@ -16,6 +16,32 @@ const initialState: FormState = {
   success: null,
 };
 
+type OnboardingTab = "account" | "listings" | "assistant";
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md px-3 py-2 text-sm font-medium ${
+        active
+          ? "bg-black text-white dark:bg-white dark:text-black"
+          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function OnboardingForm({
   tenant,
   listings,
@@ -27,7 +53,7 @@ export function OnboardingForm({
   const [state, action, isPending] = useActionState(saveOnboarding, initialState);
   const [refreshState, refreshAction, isRefreshing] = useActionState(refreshListings, initialState);
   const [toggleState, toggleAction, isToggling] = useActionState(toggleListingActive, initialState);
-  const [isEditing, setIsEditing] = useState(tenant === null);
+  const [activeTab, setActiveTab] = useState<OnboardingTab>(tenant ? "listings" : "account");
   const hostifyRequired = !tenant?.hostify_api_key_encrypted;
 
   useEffect(() => {
@@ -53,22 +79,30 @@ export function OnboardingForm({
                 {tenant.mode === "autopilot" ? "Autopilot" : "Draft"}
               </span>
             </p>
+            <p>
+              Global instructions:{" "}
+              <span className="font-medium">
+                {tenant.global_instructions?.trim() ? "Configured" : "Not set"}
+              </span>
+            </p>
           </div>
         </div>
       ) : null}
 
-      {tenant && !isEditing ? (
-        <button
-          type="button"
-          onClick={() => setIsEditing(true)}
-          className="rounded-md border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/25"
-        >
-          Edit settings
-        </button>
-      ) : null}
+      <div className="flex flex-wrap gap-2 rounded-md border border-black/10 p-1 dark:border-white/15">
+        <TabButton active={activeTab === "account"} onClick={() => setActiveTab("account")}>
+          Account
+        </TabButton>
+        <TabButton active={activeTab === "listings"} onClick={() => setActiveTab("listings")}>
+          Listings
+        </TabButton>
+        <TabButton active={activeTab === "assistant"} onClick={() => setActiveTab("assistant")}>
+          Assistant
+        </TabButton>
+      </div>
 
-      {isEditing ? (
-        <form action={action} className="space-y-6">
+      {activeTab === "account" ? (
+        <form action={action} className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15">
           <div className="space-y-2">
             <label htmlFor="hostifyApiKey" className="block text-sm font-medium">
               Hostify API key
@@ -100,7 +134,7 @@ export function OnboardingForm({
               required
               inputMode="numeric"
               defaultValue={tenant?.telegram_chat_id ?? ""}
-              placeholder="e.g. 123456789"
+              placeholder="e.g. -1001234567890"
               className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -123,23 +157,21 @@ export function OnboardingForm({
             </select>
           </div>
 
+          <input
+            type="hidden"
+            name="globalInstructions"
+            value={tenant?.global_instructions ?? ""}
+          />
+          <input type="hidden" name="saveScope" value="account" />
+
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={isPending}
               className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
             >
-              {isPending ? "Saving..." : "Save settings"}
+              {isPending ? "Saving..." : "Save account settings"}
             </button>
-            {tenant ? (
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="rounded-md border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/25"
-              >
-                Cancel
-              </button>
-            ) : null}
           </div>
 
           {state.error ? (
@@ -151,7 +183,7 @@ export function OnboardingForm({
         </form>
       ) : null}
 
-      {tenant ? (
+      {activeTab === "listings" && tenant ? (
         <div className="space-y-4 rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -243,6 +275,50 @@ export function OnboardingForm({
             <p className="text-sm text-emerald-700 dark:text-emerald-300">{toggleState.success}</p>
           ) : null}
         </div>
+      ) : null}
+
+      {activeTab === "assistant" ? (
+        <form action={action} className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15">
+          <div className="space-y-2">
+            <label htmlFor="globalInstructions" className="block text-sm font-medium">
+              Global instructions (tenant-level)
+            </label>
+            <textarea
+              id="globalInstructions"
+              name="globalInstructions"
+              rows={8}
+              maxLength={6000}
+              defaultValue={tenant?.global_instructions ?? ""}
+              placeholder="Add global behavior notes for the assistant for this tenant."
+              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Applies across all listings for this tenant. Listing-specific notes should remain in Hostify.
+            </p>
+          </div>
+
+          <input type="hidden" name="telegramChatId" value={tenant?.telegram_chat_id ?? ""} />
+          <input type="hidden" name="mode" value={tenant?.mode ?? "draft"} />
+          <input type="hidden" name="hostifyApiKey" value="" />
+          <input type="hidden" name="saveScope" value="assistant" />
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+            >
+              {isPending ? "Saving..." : "Save assistant settings"}
+            </button>
+          </div>
+
+          {state.error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+          ) : null}
+          {state.success ? (
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">{state.success}</p>
+          ) : null}
+        </form>
       ) : null}
     </div>
   );
