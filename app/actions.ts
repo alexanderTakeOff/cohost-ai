@@ -9,8 +9,9 @@ import { sendTenantConfigToN8n } from "@/lib/n8n/client";
 import {
   addTenantEvent,
   getDecryptedHostifyKey,
+  setHostAccountListingActiveForCurrentUser,
+  syncHostAccountListingsFromHostify,
   getTenantForCurrentUser,
-  upsertHostAccountListing,
   upsertTenantForCurrentUser,
 } from "@/lib/tenant/server";
 import type { TenantMode } from "@/lib/tenant/types";
@@ -35,13 +36,6 @@ function getFormValue(formData: FormData, name: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function parseListingIds(value: string) {
-  return value
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 export async function saveOnboarding(
   _prevState: ActionResult,
   formData: FormData,
@@ -51,7 +45,6 @@ export async function saveOnboarding(
     const hostifyApiKey = getFormValue(formData, "hostifyApiKey");
     const telegramChatId = getFormValue(formData, "telegramChatId");
     const mode = getFormValue(formData, "mode") as TenantMode;
-    const listingIds = parseListingIds(getFormValue(formData, "listingIds"));
 
     if (!telegramChatId) {
       return {
@@ -72,19 +65,19 @@ export async function saveOnboarding(
       telegramChatId,
       mode,
     });
-
-    for (const listingId of listingIds) {
-      await upsertHostAccountListing(tenant.id, listingId);
-    }
+    const decryptedHostifyKey = getDecryptedHostifyKey(tenant);
+    const syncSummary = decryptedHostifyKey
+      ? await syncHostAccountListingsFromHostify(tenant.id, decryptedHostifyKey)
+      : { fetched: 0, upserted: 0 };
 
     await addTenantEvent(tenant.id, "onboarding_saved", {
       mode: tenant.mode,
       telegramChatId: tenant.telegram_chat_id,
-      listingIds,
+      listingsFetched: syncSummary.fetched,
+      listingsUpserted: syncSummary.upserted,
     });
 
     if (hasN8nEnv()) {
-      const decryptedHostifyKey = getDecryptedHostifyKey(tenant);
       const idempotencyKey = await sendTenantConfigToN8n(tenant, decryptedHostifyKey);
 
       await addTenantEvent(
@@ -99,11 +92,87 @@ export async function saveOnboarding(
 
     return {
       error: null,
-      success: "Onboarding saved successfully.",
+      success: `Onboarding saved successfully. Listings synced: ${syncSummary.fetched}.`,
     };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to save onboarding.",
+      success: null,
+    };
+  }
+}
+
+export async function refreshListings(_prevState: ActionResult): Promise<ActionResult> {
+  void _prevState;
+  try {
+    const tenant = await getTenantForCurrentUser();
+    if (!tenant) {
+      return {
+        error: "Please complete onboarding first.",
+        success: null,
+      };
+    }
+
+    const hostifyApiKey = getDecryptedHostifyKey(tenant);
+    if (!hostifyApiKey) {
+      return {
+        error: "Hostify API key is missing.",
+        success: null,
+      };
+    }
+
+    const summary = await syncHostAccountListingsFromHostify(tenant.id, hostifyApiKey);
+    await addTenantEvent(tenant.id, "listings_refreshed", {
+      listingsFetched: summary.fetched,
+      listingsUpserted: summary.upserted,
+    });
+
+    return {
+      error: null,
+      success: `Listings refreshed. Found ${summary.fetched}.`,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to refresh listings.",
+      success: null,
+    };
+  }
+}
+
+export async function toggleListingActive(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  void _prevState;
+  try {
+    const listingId = getFormValue(formData, "listingId");
+    const activeRaw = getFormValue(formData, "active");
+
+    if (!listingId) {
+      return {
+        error: "listingId is required.",
+        success: null,
+      };
+    }
+
+    const active = activeRaw === "true";
+    await setHostAccountListingActiveForCurrentUser(listingId, active);
+
+    const tenant = await getTenantForCurrentUser();
+    if (tenant) {
+      await addTenantEvent(tenant.id, "listing_status_changed", {
+        listingId,
+        active,
+      });
+    }
+
+    return {
+      error: null,
+      success: active ? "Listing enabled." : "Listing disabled.",
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to update listing status.",
       success: null,
     };
   }

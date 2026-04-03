@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { saveOnboarding } from "@/app/actions";
-import type { TenantRecord } from "@/lib/tenant/types";
+import { refreshListings, saveOnboarding, toggleListingActive } from "@/app/actions";
+import type { HostAccountListingRecord, TenantRecord } from "@/lib/tenant/types";
 
 type FormState = {
   error: string | null;
@@ -15,10 +16,25 @@ const initialState: FormState = {
   success: null,
 };
 
-export function OnboardingForm({ tenant }: { tenant: TenantRecord | null }) {
+export function OnboardingForm({
+  tenant,
+  listings,
+}: {
+  tenant: TenantRecord | null;
+  listings: HostAccountListingRecord[];
+}) {
+  const router = useRouter();
   const [state, action, isPending] = useActionState(saveOnboarding, initialState);
+  const [refreshState, refreshAction, isRefreshing] = useActionState(refreshListings, initialState);
+  const [toggleState, toggleAction, isToggling] = useActionState(toggleListingActive, initialState);
   const [isEditing, setIsEditing] = useState(tenant === null);
   const hostifyRequired = !tenant?.hostify_api_key_encrypted;
+
+  useEffect(() => {
+    if (state.success || refreshState.success || toggleState.success) {
+      router.refresh();
+    }
+  }, [router, state.success, refreshState.success, toggleState.success]);
 
   return (
     <div className="space-y-6">
@@ -133,6 +149,100 @@ export function OnboardingForm({ tenant }: { tenant: TenantRecord | null }) {
             <p className="text-sm text-emerald-700 dark:text-emerald-300">{state.success}</p>
           ) : null}
         </form>
+      ) : null}
+
+      {tenant ? (
+        <div className="space-y-4 rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Listings
+              </p>
+              <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+                Pulled from Hostify by your API key. Route matching uses listing ID from webhook.
+              </p>
+            </div>
+            <form action={refreshAction}>
+              <button
+                type="submit"
+                disabled={isRefreshing}
+                className="rounded-md border border-black/20 px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25"
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh listings"}
+              </button>
+            </form>
+          </div>
+
+          {listings.length === 0 ? (
+            <p className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+              No listings synced yet. Save onboarding or press refresh.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border border-black/10 dark:border-white/15">
+              <table className="min-w-full divide-y divide-black/10 text-xs dark:divide-white/15">
+                <thead className="bg-zinc-100 dark:bg-zinc-900">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Status</th>
+                    <th className="px-3 py-2 text-left font-medium">Listing</th>
+                    <th className="px-3 py-2 text-left font-medium">Channel ID (UI)</th>
+                    <th className="px-3 py-2 text-left font-medium">Listing ID (Webhook)</th>
+                    <th className="px-3 py-2 text-left font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/10 dark:divide-white/15">
+                  {listings.map((listing) => (
+                    <tr key={listing.id}>
+                      <td className="px-3 py-2">
+                        <span
+                          className={
+                            listing.active
+                              ? "rounded bg-emerald-100 px-2 py-1 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                              : "rounded bg-zinc-200 px-2 py-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                          }
+                        >
+                          {listing.active ? "Enabled" : "Disabled"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">{listing.listing_name ?? "Unnamed listing"}</td>
+                      <td className="px-3 py-2 font-mono">{listing.channel_listing_id ?? "—"}</td>
+                      <td className="px-3 py-2 font-mono">{listing.listing_id}</td>
+                      <td className="px-3 py-2">
+                        <form action={toggleAction}>
+                          <input type="hidden" name="listingId" value={listing.listing_id} />
+                          <input
+                            type="hidden"
+                            name="active"
+                            value={listing.active ? "false" : "true"}
+                          />
+                          <button
+                            type="submit"
+                            disabled={isToggling}
+                            className="rounded-md border border-black/20 px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25"
+                          >
+                            {listing.active ? "Disable" : "Enable"}
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {refreshState.error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{refreshState.error}</p>
+          ) : null}
+          {refreshState.success ? (
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">{refreshState.success}</p>
+          ) : null}
+          {toggleState.error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{toggleState.error}</p>
+          ) : null}
+          {toggleState.success ? (
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">{toggleState.success}</p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

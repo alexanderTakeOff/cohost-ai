@@ -80,3 +80,20 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - Backend resolver route added at `app/api/n8n/runtime-config/route.ts`
 - Rollback reference:
   - Restore prior workflow version and keep A1 key variable mode until A4 is validated.
+
+- Date (UTC): 2026-04-03
+- Operator: Cursor
+- Workflow: App backend + onboarding UI (no n8n node edits)
+- Node(s): n/a
+- Change summary:
+  - Added Hostify listings auto-sync from app onboarding save using `GET /listings` with pagination.
+  - Extended host-account listing model with UI metadata (`listing_name`, `channel_listing_id`, `last_seen_at`) and added migration.
+  - Added onboarding listings table showing `channel_listing_id` (UI) and `listing_id` (webhook key), plus per-listing enable/disable and manual refresh.
+  - Preserved resolver routing on canonical `listing_id` and `active=true`.
+- Reason:
+  - Remove manual listing ID entry, improve operator trust/visibility, and allow selective listing disable for MVP.
+- Verification:
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Rollback reference:
+  - Revert app commit for A4.1 and keep prior manual mapping flow.
