@@ -18,7 +18,7 @@ Source of Truth: This file is the canonical execution tracker for MVP operations
 | A2 | Improve Telegram error alerts with full execution context | DONE | Error alert contains `workflow_name`, `workflow_id`, `execution_id`, `failed_node_name`, `error_message`, `tenant_id` (if available), and timestamp | Low | Team | Live alert sample confirmed with execution context in Telegram |
 | A3 | Protect webhook nodes from accidental edits | IN_PROGRESS | Webhook nodes listed in protected inventory; runbook explicitly forbids changing `path`/`webhookId` without ADR | Low | Team | Policy captured in `N8N_RUNBOOK.md` + `N8N_PROTECTED_NODES.md` |
 | A4 | Align runtime Hostify calls with host-account-specific config | IN_PROGRESS | Runtime flow resolves host-account config by `listing_id` before Hostify calls | High | Team | Backend resolver + mapping schema + n8n patch artifacts prepared; A4.1 added auto-sync listings from Hostify API and onboarding listings UI (enable/disable) |
-| A5 | Standardize event taxonomy (`guest_message`, `ai_reply`, `n8n_sync_ok/error`) | PLANNED | Dashboard metrics and n8n callbacks use consistent event types | Medium | Team | Required for trustworthy metrics |
+| A5 | Standardize event taxonomy (`guest_message`, `ai_reply`, `n8n_sync_ok/error`) | IN_PROGRESS | Dashboard metrics and n8n callbacks use consistent event types | Medium | Team | A5 Telegram runtime-routing artifact prepared (`docs/ops/n8n/cohost-tenant-sync.A5-telegram-runtime-routing.json`) with apply guide; taxonomy finalization still pending |
 
 ## Recently Completed Product Chunks
 

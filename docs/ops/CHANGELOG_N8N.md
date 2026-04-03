@@ -97,3 +97,19 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - `npm run build` passed.
 - Rollback reference:
   - Revert app commit for A4.1 and keep prior manual mapping flow.
+
+- Date (UTC): 2026-04-03
+- Operator: Cursor
+- Workflow: `cohost-tenant-sync`
+- Node(s): `forward message to Telegram`, `Guest_Alerts_Tool`, `Team_Messages_Tool`, `Error`, `Global_Instructions_Tool`
+- Change summary:
+  - Prepared A5 patch artifact to remove hardcoded tenant Telegram chat IDs and route tenant-facing Telegram traffic through runtime resolver output.
+  - Kept global platform-owner channels separated via n8n variables for incident alerts and global instructions source.
+  - Stripped export-only `pinData`/meta from artifact to reduce accidental secret leakage in shared JSON files.
+- Reason:
+  - Enforce multi-tenant Telegram routing and prevent cross-tenant chat bleed due to hardcoded chat IDs.
+- Verification:
+  - Patch artifact generated at `docs/ops/n8n/cohost-tenant-sync.A5-telegram-runtime-routing.json`
+  - Apply guide created at `docs/ops/n8n/A5_APPLY_GUIDE.md`
+- Rollback reference:
+  - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
