@@ -19,6 +19,7 @@ Read this file at every run.
 - `docs/ops/N8N_RUNBOOK.md`
 - `docs/ops/N8N_PROTECTED_NODES.md`
 - `docs/ops/CHANGELOG_N8N.md` (required on workflow edits)
+- `docs/ops/GLOSSARY.md` (required when discussing architecture/schema naming)
 
 ## Non-Negotiable Rule
 

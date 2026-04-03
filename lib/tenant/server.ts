@@ -3,7 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { parseTenantMode } from "./validators";
-import type { TenantMetrics, TenantMode, TenantRecord } from "./types";
+import type {
+  HostAccountListingRecord,
+  TenantMetrics,
+  TenantMode,
+  TenantRecord,
+} from "./types";
 
 export type OnboardingInput = {
   hostifyApiKey?: string;
@@ -169,6 +174,70 @@ export async function addTenantEventWithAdmin(
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export async function upsertHostAccountListing(
+  tenantId: string,
+  listingId: string,
+  hostifyAccountRef?: string | null,
+) {
+  const supabase = createAdminClient();
+  const payload = {
+    tenant_id: tenantId,
+    listing_id: listingId,
+    hostify_account_ref: hostifyAccountRef ?? null,
+    active: true,
+  };
+
+  const { data, error } = await supabase
+    .from("host_account_listings")
+    .upsert(payload, { onConflict: "tenant_id,listing_id" })
+    .select("*")
+    .single<HostAccountListingRecord>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function resolveRuntimeConfigByListing(listingId: string) {
+  const supabase = createAdminClient();
+  const { data: mapping, error: mappingError } = await supabase
+    .from("host_account_listings")
+    .select("*")
+    .eq("listing_id", listingId)
+    .eq("active", true)
+    .maybeSingle<HostAccountListingRecord>();
+
+  if (mappingError) {
+    throw new Error(mappingError.message);
+  }
+
+  if (!mapping) {
+    return null;
+  }
+
+  const { data: tenant, error: tenantError } = await supabase
+    .from("tenants")
+    .select("*")
+    .eq("id", mapping.tenant_id)
+    .maybeSingle<TenantRecord>();
+
+  if (tenantError) {
+    throw new Error(tenantError.message);
+  }
+
+  if (!tenant || !tenant.is_active) {
+    return null;
+  }
+
+  return {
+    tenant,
+    mapping,
+    hostifyApiKey: getDecryptedHostifyKey(tenant),
+  };
 }
 
 export function getMaskedHostifyKey(record: TenantRecord | null) {

@@ -8,9 +8,14 @@
 
 The current system combines:
 
-- Next.js app (auth, onboarding, dashboard, tenant config)
+- Next.js app (auth, onboarding, dashboard, host-account config)
 - Supabase (auth + data)
 - n8n workflows (orchestration, tool calls, Hostify/Telegram integration)
+
+Terminology note:
+
+- Historical term `tenant` in the codebase means **Host Account** (customer-side isolation unit), not rental guest.
+- See `docs/ops/GLOSSARY.md` for canonical terms.
 
 The n8n workflow is already feature-rich and operationally complex (multiple triggers, agents, tools, code nodes).
 Immediate full rewrite into app code would introduce high regression risk and high implementation cost.
