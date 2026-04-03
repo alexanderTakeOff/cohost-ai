@@ -49,6 +49,24 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 - Rollback reference:
   - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
 
+- Date (UTC): 2026-04-03
+- Operator: Cursor
+- Workflow: App backend + onboarding UI + runtime resolver contract
+- Node(s): n/a (no direct n8n node edits in this chunk)
+- Change summary:
+  - Added tenant-level `global_instructions` support to app data model and onboarding save flow.
+  - Added onboarding tabs (`Account`, `Listings`, `Assistant`) to reduce UX coupling and avoid one monolithic settings form.
+  - Added assistant settings section with dedicated save scope; assistant-only save skips Hostify listings resync.
+  - Extended runtime resolver response and tenant sync payload with `globalInstructions` so n8n can consume app-managed global policy text.
+  - Added migration `supabase/2026-04-03-a6-tenant-global-instructions.sql`.
+- Reason:
+  - Replace fragile Telegram pinned-message dependency with tenant-owned source of truth in the app while keeping MVP complexity controlled.
+- Verification:
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Rollback reference:
+  - Revert app commit for A6 and keep prior onboarding layout + Telegram-only global instructions flow.
+
 - Date (UTC): 2026-04-02
 - Operator: Cursor
 - Workflow: `cohost-tenant-sync`

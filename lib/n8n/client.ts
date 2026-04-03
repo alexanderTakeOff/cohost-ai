@@ -9,6 +9,7 @@ type N8nSyncPayload = {
   tenantId: string;
   mode: TenantRecord["mode"];
   telegramChatId: string | null;
+  globalInstructions: string | null;
   hostifyApiKey: string | null;
   sentAt: string;
 };
@@ -24,6 +25,7 @@ export async function sendTenantConfigToN8n(
     tenantId: tenant.id,
     mode: tenant.mode,
     telegramChatId: tenant.telegram_chat_id,
+    globalInstructions: tenant.global_instructions,
     hostifyApiKey: decryptedHostifyKey,
     sentAt: new Date().toISOString(),
   };

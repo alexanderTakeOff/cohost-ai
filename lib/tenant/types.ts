@@ -5,6 +5,7 @@ export type TenantRecord = {
   user_id: string;
   hostify_api_key_encrypted: string | null;
   telegram_chat_id: string | null;
+  global_instructions: string | null;
   mode: TenantMode;
   is_active: boolean;
   created_at: string;

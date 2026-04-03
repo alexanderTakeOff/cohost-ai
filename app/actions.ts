@@ -45,6 +45,10 @@ export async function saveOnboarding(
     const hostifyApiKey = getFormValue(formData, "hostifyApiKey");
     const telegramChatId = getFormValue(formData, "telegramChatId");
     const mode = getFormValue(formData, "mode") as TenantMode;
+    const globalInstructionsRaw = formData.get("globalInstructions");
+    const globalInstructions =
+      typeof globalInstructionsRaw === "string" ? globalInstructionsRaw.slice(0, 6000) : "";
+    const saveScope = getFormValue(formData, "saveScope");
 
     if (!telegramChatId) {
       return {
@@ -63,16 +67,21 @@ export async function saveOnboarding(
     const tenant = await upsertTenantForCurrentUser({
       hostifyApiKey: hostifyApiKey || undefined,
       telegramChatId,
+      globalInstructions,
       mode,
     });
     const decryptedHostifyKey = getDecryptedHostifyKey(tenant);
-    const syncSummary = decryptedHostifyKey
-      ? await syncHostAccountListingsFromHostify(tenant.id, decryptedHostifyKey)
-      : { fetched: 0, upserted: 0 };
+    const shouldSyncListings = saveScope !== "assistant";
+    const syncSummary =
+      shouldSyncListings && decryptedHostifyKey
+        ? await syncHostAccountListingsFromHostify(tenant.id, decryptedHostifyKey)
+        : { fetched: 0, upserted: 0 };
 
     await addTenantEvent(tenant.id, "onboarding_saved", {
+      scope: saveScope || "account",
       mode: tenant.mode,
       telegramChatId: tenant.telegram_chat_id,
+      globalInstructionsLength: tenant.global_instructions?.length ?? 0,
       listingsFetched: syncSummary.fetched,
       listingsUpserted: syncSummary.upserted,
     });
@@ -92,7 +101,9 @@ export async function saveOnboarding(
 
     return {
       error: null,
-      success: `Onboarding saved successfully. Listings synced: ${syncSummary.fetched}.`,
+      success: shouldSyncListings
+        ? `Onboarding saved successfully. Listings synced: ${syncSummary.fetched}.`
+        : "Assistant settings saved successfully.",
     };
   } catch (error) {
     return {
