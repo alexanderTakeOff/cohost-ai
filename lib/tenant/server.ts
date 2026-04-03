@@ -40,6 +40,26 @@ type HostifyListingsResponseEnvelope = {
 
 const HOSTIFY_LISTINGS_ENDPOINT = "https://api-rms.hostify.com/listings";
 
+function isMissingColumnError(error: { message?: string } | null, columnName: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes(`column`) && message.includes(columnName.toLowerCase()) && message.includes("does not exist");
+}
+
+function normalizeListingRow(row: Record<string, unknown>): HostAccountListingRecord {
+  return {
+    id: toStringOrNull(row.id) ?? "",
+    tenant_id: toStringOrNull(row.tenant_id) ?? "",
+    listing_id: toStringOrNull(row.listing_id) ?? "",
+    listing_name: toStringOrNull(row.listing_name),
+    channel_listing_id: toStringOrNull(row.channel_listing_id),
+    hostify_account_ref: toStringOrNull(row.hostify_account_ref),
+    active: Boolean(row.active),
+    last_seen_at: toStringOrNull(row.last_seen_at),
+    created_at: toStringOrNull(row.created_at) ?? "",
+    updated_at: toStringOrNull(row.updated_at) ?? "",
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -331,7 +351,7 @@ export async function upsertHostAccountListing(
   input?: UpsertHostAccountListingInput,
 ) {
   const supabase = createAdminClient();
-  const payload = {
+  const payload: Record<string, unknown> = {
     tenant_id: tenantId,
     listing_id: listingId,
     listing_name: input?.listingName ?? null,
@@ -341,17 +361,40 @@ export async function upsertHostAccountListing(
     last_seen_at: input?.lastSeenAt ?? null,
   };
 
-  const { data, error } = await supabase
+  const firstAttempt = await supabase
     .from("host_account_listings")
     .upsert(payload, { onConflict: "tenant_id,listing_id" })
     .select("*")
     .single<HostAccountListingRecord>();
-
-  if (error) {
-    throw new Error(error.message);
+  if (!firstAttempt.error) {
+    return firstAttempt.data;
   }
 
-  return data;
+  if (
+    !isMissingColumnError(firstAttempt.error, "listing_name") &&
+    !isMissingColumnError(firstAttempt.error, "channel_listing_id") &&
+    !isMissingColumnError(firstAttempt.error, "last_seen_at")
+  ) {
+    throw new Error(firstAttempt.error.message);
+  }
+
+  const legacyPayload = {
+    tenant_id: tenantId,
+    listing_id: listingId,
+    hostify_account_ref: input?.hostifyAccountRef ?? null,
+    active: input?.active ?? true,
+  };
+  const legacyAttempt = await supabase
+    .from("host_account_listings")
+    .upsert(legacyPayload, { onConflict: "tenant_id,listing_id" })
+    .select("*")
+    .single<HostAccountListingRecord>();
+
+  if (legacyAttempt.error) {
+    throw new Error(legacyAttempt.error.message);
+  }
+
+  return legacyAttempt.data;
 }
 
 export async function getHostAccountListingsForCurrentUser() {
@@ -361,18 +404,31 @@ export async function getHostAccountListingsForCurrentUser() {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const firstAttempt = await supabase
     .from("host_account_listings")
     .select("*")
     .eq("tenant_id", tenant.id)
     .order("listing_name", { ascending: true, nullsFirst: false })
     .order("listing_id", { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
+  if (!firstAttempt.error) {
+    return ((firstAttempt.data ?? []) as Record<string, unknown>[]).map(normalizeListingRow);
   }
 
-  return (data ?? []) as HostAccountListingRecord[];
+  if (!isMissingColumnError(firstAttempt.error, "listing_name")) {
+    throw new Error(firstAttempt.error.message);
+  }
+
+  const legacyAttempt = await supabase
+    .from("host_account_listings")
+    .select("*")
+    .eq("tenant_id", tenant.id)
+    .order("listing_id", { ascending: true });
+
+  if (legacyAttempt.error) {
+    throw new Error(legacyAttempt.error.message);
+  }
+
+  return ((legacyAttempt.data ?? []) as Record<string, unknown>[]).map(normalizeListingRow);
 }
 
 export async function setHostAccountListingActive(
@@ -501,13 +557,32 @@ export async function syncHostAccountListingsFromHostify(
     active: existingActiveMap.get(listing.listingId) ?? true,
     last_seen_at: syncedAt,
   }));
-
-  const { error: upsertError } = await supabase
+  const firstAttempt = await supabase
     .from("host_account_listings")
     .upsert(payload, { onConflict: "tenant_id,listing_id" });
+  if (firstAttempt.error) {
+    const isLegacySchemaError =
+      isMissingColumnError(firstAttempt.error, "listing_name") ||
+      isMissingColumnError(firstAttempt.error, "channel_listing_id") ||
+      isMissingColumnError(firstAttempt.error, "last_seen_at");
 
-  if (upsertError) {
-    throw new Error(upsertError.message);
+    if (!isLegacySchemaError) {
+      throw new Error(firstAttempt.error.message);
+    }
+
+    const legacyPayload = listings.map((listing) => ({
+      tenant_id: tenantId,
+      listing_id: listing.listingId,
+      hostify_account_ref: listing.hostifyAccountRef,
+      active: existingActiveMap.get(listing.listingId) ?? true,
+    }));
+    const legacyAttempt = await supabase
+      .from("host_account_listings")
+      .upsert(legacyPayload, { onConflict: "tenant_id,listing_id" });
+
+    if (legacyAttempt.error) {
+      throw new Error(legacyAttempt.error.message);
+    }
   }
 
   return {
