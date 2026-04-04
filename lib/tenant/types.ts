@@ -58,9 +58,30 @@ export type HostAccountListingRecord = {
   listing_id: string;
   listing_name: string | null;
   channel_listing_id: string | null;
+  target_id: string | null;
+  parent_listing_id: string | null;
+  account_id: string | null;
   hostify_account_ref: string | null;
   active: boolean;
   last_seen_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HostAccountListingAliasType =
+  | "webhook_listing_id"
+  | "target_id"
+  | "parent_listing_id"
+  | "channel_listing_id";
+
+export type HostAccountListingAliasRecord = {
+  id: string;
+  tenant_id: string;
+  canonical_listing_id: string;
+  alias_type: HostAccountListingAliasType;
+  alias_value: string;
+  first_seen_at: string;
+  last_seen_at: string;
   created_at: string;
   updated_at: string;
 };

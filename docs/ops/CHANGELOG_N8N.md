@@ -83,6 +83,31 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 - Rollback reference:
   - Revert this chunk's commit and keep previous dashboard/onboarding metrics behavior.
 
+- Date (UTC): 2026-04-04
+- Operator: Cursor
+- Workflow: App runtime resolver + n8n apply guide updates (A6/C6)
+- Node(s): `Build_Runtime_Config_Request` (guide update only), `Resolve_Runtime_Config` (guide update only), app resolver route
+- Change summary:
+  - Implemented account-scoped runtime resolver path in app:
+    - extract Hostify account marker from SNS topic ARN (`hostify-webhook-go-<account>-message_new`)
+    - resolve config by account + listing with alias fallback
+    - fallback details lookup by listing id for same account and auto-backfill mapping/aliases.
+  - Added listing alias persistence table and indexes:
+    - `host_account_listing_aliases`
+    - alias types: `webhook_listing_id`, `target_id`, `parent_listing_id`, `channel_listing_id`
+  - Extended host-account listing metadata to support runtime identity hardening:
+    - `target_id`, `parent_listing_id`, `account_id`
+  - Updated runtime-config API response with `resolutionPath` and `accountId` for observability.
+  - Added A6 n8n apply guide and updated A4 guide to include `topicArn` propagation in resolver request payload.
+  - Added fallback-safe behavior for legacy DB schemas where new columns/tables are not yet migrated.
+- Reason:
+  - Prevent production message loss when webhook listing id is valid within account scope but missing in onboarding cache mapping.
+- Verification:
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Rollback reference:
+  - Revert A6/C6 app commit and keep previous strict mapping behavior; workflow remains compatible with older payload shape.
+
 - Date (UTC): 2026-04-03
 - Operator: Cursor
 - Workflow: App backend + onboarding UI + runtime resolver contract

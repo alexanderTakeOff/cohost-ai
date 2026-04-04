@@ -5,7 +5,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getN8nEnv } from "@/lib/n8n/env";
 import { signPayload } from "@/lib/n8n/signer";
 import {
-  resolveRuntimeConfigByListing,
+  extractHostifyAccountRefFromTopicArn,
+  resolveRuntimeConfigByAccountAndListing,
   upsertHostAccountListing,
 } from "@/lib/tenant/server";
 
@@ -39,28 +40,37 @@ export async function POST(request: NextRequest) {
       hostifyAccountRef?: string;
       threadId?: string;
       reservationId?: string;
+      topicArn?: string;
     };
 
     if (!payload.listingId) {
       return NextResponse.json({ error: "listingId is required." }, { status: 400 });
     }
 
-    const resolved = await resolveRuntimeConfigByListing(payload.listingId);
+    const accountRefFromTopic = extractHostifyAccountRefFromTopicArn(payload.topicArn);
+    const resolved = await resolveRuntimeConfigByAccountAndListing({
+      listingId: payload.listingId,
+      hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic,
+      threadId: payload.threadId ?? null,
+      reservationId: payload.reservationId ?? null,
+    });
     if (!resolved) {
       return NextResponse.json(
         {
           error: "No active host-account mapping found for listing.",
           listingId: payload.listingId,
+          hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic ?? null,
+          resolutionPath: "unresolved",
         },
         { status: 404 },
       );
     }
 
-    if (payload.hostifyAccountRef) {
+    if (payload.hostifyAccountRef || accountRefFromTopic) {
       await upsertHostAccountListing(
         resolved.tenant.id,
         payload.listingId,
-        { hostifyAccountRef: payload.hostifyAccountRef },
+        { hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic },
       );
     }
 
@@ -70,6 +80,8 @@ export async function POST(request: NextRequest) {
       tenantId: resolved.tenant.id,
       listingId: resolved.mapping.listing_id,
       hostifyAccountRef: resolved.mapping.hostify_account_ref,
+      accountId: resolved.mapping.account_id ?? null,
+      resolutionPath: resolved.resolutionPath,
       mode: resolved.tenant.mode,
       telegramChatId: resolved.tenant.telegram_chat_id,
       globalInstructions: resolved.tenant.global_instructions,

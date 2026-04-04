@@ -37,6 +37,8 @@ Then use resolved `hostifyApiKey` in Hostify HTTP nodes instead of a single glob
    - `Normalize_Runtime_Config`
 4. Verify rewired chain:
    - after `Code_Adapter_to_Old_Logic` resolver path runs before Hostify runtime HTTP nodes.
+   - `Build_Runtime_Config_Request` includes topic ARN from webhook headers:
+     - `topicArn = {{ $json.headers?.["x-amz-sns-topic-arn"] ?? null }}`
 5. Verify Hostify runtime HTTP headers use:
    - `x-api-key = {{$json.runtime_config.hostifyApiKey}}`
 6. Save and activate.
