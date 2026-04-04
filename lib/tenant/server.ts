@@ -57,6 +57,12 @@ type HostifyListingsResponseEnvelope = {
 };
 
 const HOSTIFY_LISTINGS_ENDPOINT = "https://api-rms.hostify.com/listings";
+const LOSSLESS_ID_JSON_FIELDS = [
+  "channel_listing_id",
+  "channelListingId",
+  "channel_id",
+  "channelId",
+];
 
 function isMissingColumnError(error: { message?: string } | null, columnName: string) {
   const message = error?.message?.toLowerCase() ?? "";
@@ -79,6 +85,15 @@ function normalizeListingRow(row: Record<string, unknown>): HostAccountListingRe
     created_at: toStringOrNull(row.created_at) ?? "",
     updated_at: toStringOrNull(row.updated_at) ?? "",
   };
+}
+
+function parseHostifyJsonLossless(rawJsonText: string): unknown {
+  let normalized = rawJsonText;
+  for (const field of LOSSLESS_ID_JSON_FIELDS) {
+    const fieldPattern = new RegExp(`("${field}"\\s*:\\s*)(-?\\d+)`, "g");
+    normalized = normalized.replace(fieldPattern, '$1"$2"');
+  }
+  return JSON.parse(normalized) as unknown;
 }
 
 function toLosslessId(value: unknown): string | null {
@@ -190,15 +205,15 @@ async function fetchHostifyListings(hostifyApiKey: string): Promise<HostifyListi
       },
       cache: "no-store",
     });
+    const responseText = await response.text();
 
     if (!response.ok) {
-      const responseText = await response.text();
       throw new Error(
         `Hostify listings fetch failed (${response.status}): ${responseText.slice(0, 500)}`,
       );
     }
 
-    const payload = (await response.json()) as unknown;
+    const payload = parseHostifyJsonLossless(responseText);
     const pageItems = pickListingArray(payload);
     const normalized = pageItems
       .map((item) => normalizeHostifyListing(item))
@@ -1266,10 +1281,11 @@ async function fetchHostifyListingDetailsByListingId(hostifyApiKey: string, list
     },
     cache: "no-store",
   });
+  const responseText = await response.text();
   if (!response.ok) {
     return null;
   }
-  const payload = (await response.json()) as unknown;
+  const payload = parseHostifyJsonLossless(responseText);
   const listingRoot = isRecord(payload) ? payload : null;
   const body = listingRoot && isRecord(listingRoot.body) ? listingRoot.body : listingRoot;
   const listingObj = body && isRecord(body.listing) ? body.listing : body;
