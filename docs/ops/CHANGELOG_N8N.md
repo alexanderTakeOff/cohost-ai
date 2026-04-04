@@ -17,6 +17,21 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 
 ## 2026-04-01
 
+- Date (UTC): 2026-04-03
+- Operator: Cursor
+- Workflow: Planning docs (no runtime node edits)
+- Node(s): n/a
+- Change summary:
+  - Added product-first runtime incident guardrails for agents in `AGENTS.md`.
+  - Added implementation blueprint `docs/ops/A6_RUNTIME_FIRST_ROUTING_PLAN.md` for account-scoped resolver + alias fallback.
+  - Updated preflight/meta docs to require reading A6 plan for runtime routing incident tasks.
+- Reason:
+  - Repeated runtime resolver 404 failures on valid guest messages when webhook listing IDs are missing in onboarding cache mapping.
+- Verification:
+  - Documentation updates committed; no workflow JSON/node changes in this entry.
+- Rollback reference:
+  - Revert docs-only commit if policy wording needs revision.
+
 - Date (UTC): 2026-04-01
 - Operator: Alexander + Cursor
 - Workflow: `cohost-tenant-sync`
