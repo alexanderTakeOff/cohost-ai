@@ -17,6 +17,21 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 
 ## 2026-04-01
 
+- Date (UTC): 2026-04-03
+- Operator: Cursor
+- Workflow: Planning docs (no runtime node edits)
+- Node(s): n/a
+- Change summary:
+  - Added product-first runtime incident guardrails for agents in `AGENTS.md`.
+  - Added implementation blueprint `docs/ops/A6_RUNTIME_FIRST_ROUTING_PLAN.md` for account-scoped resolver + alias fallback.
+  - Updated preflight/meta docs to require reading A6 plan for runtime routing incident tasks.
+- Reason:
+  - Repeated runtime resolver 404 failures on valid guest messages when webhook listing IDs are missing in onboarding cache mapping.
+- Verification:
+  - Documentation updates committed; no workflow JSON/node changes in this entry.
+- Rollback reference:
+  - Revert docs-only commit if policy wording needs revision.
+
 - Date (UTC): 2026-04-01
 - Operator: Alexander + Cursor
 - Workflow: `cohost-tenant-sync`
@@ -48,6 +63,50 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - Apply guide created at `docs/ops/n8n/A2_APPLY_GUIDE.md`
 - Rollback reference:
   - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
+
+- Date (UTC): 2026-04-03
+- Operator: Cursor
+- Workflow: App backend + metrics dashboard + onboarding economics tab (no direct n8n node edits)
+- Node(s): n/a
+- Change summary:
+  - Standardized app-side tenant event taxonomy through `lib/tenant/events.ts` with canonical types and alias mapping for external callbacks.
+  - Added normalized event payload enrichment (`tenantId`, `listingId`, `threadId`, `reservationId`, `eventVersion`, `emittedAt`) for consistent callbacks and internal events.
+  - Hardened `/api/n8n/tenant-events` to canonicalize incoming `eventType` values before writing to `tenant_events`.
+  - Added economics assumptions persistence fields in tenants (`labor_hourly_rate_usd`, `avg_handle_minutes_per_message`) via migration.
+  - Added economics aggregation in server layer and exposed MVP economics UI on dashboard (assistant cost, estimated saved labor, net value, listing-level breakdown).
+  - Added onboarding "Economics" tab to save tenant assumptions from UI.
+- Reason:
+  - Implement chunks C2/C3/C4/C5 for consistent event analytics and transparent economic value reporting per tenant/listing.
+- Verification:
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Rollback reference:
+  - Revert this chunk's commit and keep previous dashboard/onboarding metrics behavior.
+
+- Date (UTC): 2026-04-04
+- Operator: Cursor
+- Workflow: App runtime resolver + n8n apply guide updates (A6/C6)
+- Node(s): `Build_Runtime_Config_Request` (guide update only), `Resolve_Runtime_Config` (guide update only), app resolver route
+- Change summary:
+  - Implemented account-scoped runtime resolver path in app:
+    - extract Hostify account marker from SNS topic ARN (`hostify-webhook-go-<account>-message_new`)
+    - resolve config by account + listing with alias fallback
+    - fallback details lookup by listing id for same account and auto-backfill mapping/aliases.
+  - Added listing alias persistence table and indexes:
+    - `host_account_listing_aliases`
+    - alias types: `webhook_listing_id`, `target_id`, `parent_listing_id`, `channel_listing_id`
+  - Extended host-account listing metadata to support runtime identity hardening:
+    - `target_id`, `parent_listing_id`, `account_id`
+  - Updated runtime-config API response with `resolutionPath` and `accountId` for observability.
+  - Added A6 n8n apply guide and updated A4 guide to include `topicArn` propagation in resolver request payload.
+  - Added fallback-safe behavior for legacy DB schemas where new columns/tables are not yet migrated.
+- Reason:
+  - Prevent production message loss when webhook listing id is valid within account scope but missing in onboarding cache mapping.
+- Verification:
+  - `npm run lint` passed.
+  - `npm run build` passed.
+- Rollback reference:
+  - Revert A6/C6 app commit and keep previous strict mapping behavior; workflow remains compatible with older payload shape.
 
 - Date (UTC): 2026-04-03
 - Operator: Cursor

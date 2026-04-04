@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getListingEconomicsForCurrentUser,
   getMaskedHostifyKey,
+  getTenantEconomicsMetrics,
   getTenantForCurrentUser,
   getTenantMetrics,
 } from "@/lib/tenant/server";
@@ -15,6 +17,14 @@ function formatDate(value: string | null) {
   }
 
   return new Date(value).toLocaleString();
+}
+
+function formatMoneyUsd(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export default async function DashboardPage() {
@@ -46,6 +56,8 @@ export default async function DashboardPage() {
   }
 
   const metrics = await getTenantMetrics(tenant.id);
+  const economics = await getTenantEconomicsMetrics(tenant.id);
+  const listingEconomics = await getListingEconomicsForCurrentUser();
   const maskedKey = getMaskedHostifyKey(tenant);
 
   return (
@@ -72,6 +84,63 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Stat title="Guest messages" value={String(metrics.guestMessages)} />
           <Stat title="AI replies" value={String(metrics.aiReplies)} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Stat title="Assistant cost (USD)" value={formatMoneyUsd(economics.aiCostUsd)} />
+          <Stat title="Estimated labor saved (USD)" value={formatMoneyUsd(economics.estimatedLaborSavedUsd)} />
+          <Stat title="Estimated net value (USD)" value={formatMoneyUsd(economics.netValueUsd)} />
+          <Stat title="Hours saved (est.)" value={economics.estimatedHoursSaved.toFixed(2)} />
+        </div>
+
+        <div className="rounded-md border border-black/10 p-4 dark:border-white/15">
+          <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Economic assumptions
+          </p>
+          <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
+            Labor cost/hour:{" "}
+            <span className="font-medium">{formatMoneyUsd(economics.laborRateUsd)}</span>
+          </p>
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+            Avg handling time/message:{" "}
+            <span className="font-medium">
+              {economics.avgHandleMinutesPerMessage.toFixed(2)} min
+            </span>
+          </p>
+        </div>
+
+        <div className="rounded-md border border-black/10 p-4 dark:border-white/15">
+          <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Listing economics (MVP)
+          </p>
+          {listingEconomics.length === 0 ? (
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              No listing-level economics data yet.
+            </p>
+          ) : (
+            <div className="mt-3 overflow-x-auto rounded-md border border-black/10 dark:border-white/15">
+              <table className="min-w-full divide-y divide-black/10 text-xs dark:divide-white/15">
+                <thead className="bg-zinc-100 dark:bg-zinc-900">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Listing ID</th>
+                    <th className="px-3 py-2 text-left font-medium">Guest messages</th>
+                    <th className="px-3 py-2 text-left font-medium">AI replies</th>
+                    <th className="px-3 py-2 text-left font-medium">Cost (USD)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/10 dark:divide-white/15">
+                  {listingEconomics.map((row) => (
+                    <tr key={row.listingId}>
+                      <td className="px-3 py-2 font-mono">{row.listingId}</td>
+                      <td className="px-3 py-2">{row.guestMessages}</td>
+                      <td className="px-3 py-2">{row.aiReplies}</td>
+                      <td className="px-3 py-2">{formatMoneyUsd(row.aiCostUsd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">

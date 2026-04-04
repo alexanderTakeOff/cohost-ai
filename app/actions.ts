@@ -9,12 +9,16 @@ import { sendTenantConfigToN8n } from "@/lib/n8n/client";
 import {
   addTenantEvent,
   getDecryptedHostifyKey,
+  getTenantEconomicsMetrics,
+  getListingEconomicsForCurrentUser,
   setHostAccountListingActiveForCurrentUser,
   syncHostAccountListingsFromHostify,
   getTenantForCurrentUser,
+  updateTenantEconomicAssumptionsForCurrentUser,
   upsertTenantForCurrentUser,
 } from "@/lib/tenant/server";
 import type { TenantMode } from "@/lib/tenant/types";
+import { createEventPayload, TenantEventType } from "@/lib/tenant/events";
 import { isLikelyTelegramChatId } from "@/lib/tenant/validators";
 
 export async function signOut() {
@@ -29,6 +33,11 @@ export async function signOut() {
 type ActionResult = {
   error: string | null;
   success: string | null;
+};
+
+export type EconomicsActionResult = ActionResult & {
+  metrics?: Awaited<ReturnType<typeof getTenantEconomicsMetrics>>;
+  listingBreakdown?: Awaited<ReturnType<typeof getListingEconomicsForCurrentUser>>;
 };
 
 function getFormValue(formData: FormData, name: string) {
@@ -77,24 +86,32 @@ export async function saveOnboarding(
         ? await syncHostAccountListingsFromHostify(tenant.id, decryptedHostifyKey)
         : { fetched: 0, upserted: 0 };
 
-    await addTenantEvent(tenant.id, "onboarding_saved", {
-      scope: saveScope || "account",
-      mode: tenant.mode,
-      telegramChatId: tenant.telegram_chat_id,
-      globalInstructionsLength: tenant.global_instructions?.length ?? 0,
-      listingsFetched: syncSummary.fetched,
-      listingsUpserted: syncSummary.upserted,
-    });
+    await addTenantEvent(
+      tenant.id,
+      TenantEventType.ONBOARDING_UPDATED,
+      createEventPayload({
+        tenantId: tenant.id,
+        source: "app",
+        mode: tenant.mode,
+        scope: saveScope || "account",
+        telegramChatId: tenant.telegram_chat_id,
+        globalInstructionsLength: tenant.global_instructions?.length ?? 0,
+        listingsFetched: syncSummary.fetched,
+        listingsUpserted: syncSummary.upserted,
+      }),
+    );
 
     if (hasN8nEnv()) {
       const idempotencyKey = await sendTenantConfigToN8n(tenant, decryptedHostifyKey);
 
       await addTenantEvent(
         tenant.id,
-        "n8n_sync_sent",
-        {
+        TenantEventType.N8N_SYNC_SENT,
+        createEventPayload({
+          tenantId: tenant.id,
+          source: "app",
           mode: tenant.mode,
-        },
+        }),
         idempotencyKey,
       );
     }
@@ -133,10 +150,16 @@ export async function refreshListings(_prevState: ActionResult): Promise<ActionR
     }
 
     const summary = await syncHostAccountListingsFromHostify(tenant.id, hostifyApiKey);
-    await addTenantEvent(tenant.id, "listings_refreshed", {
-      listingsFetched: summary.fetched,
-      listingsUpserted: summary.upserted,
-    });
+    await addTenantEvent(
+      tenant.id,
+      TenantEventType.LISTINGS_REFRESHED,
+      createEventPayload({
+        tenantId: tenant.id,
+        source: "app",
+        listingsFetched: summary.fetched,
+        listingsUpserted: summary.upserted,
+      }),
+    );
 
     return {
       error: null,
@@ -171,9 +194,13 @@ export async function toggleListingActive(
 
     const tenant = await getTenantForCurrentUser();
     if (tenant) {
-      await addTenantEvent(tenant.id, "listing_status_changed", {
-        listingId,
-        active,
+      await addTenantEvent(tenant.id, TenantEventType.LISTING_STATUS_CHANGED, {
+        ...createEventPayload({
+          tenantId: tenant.id,
+          source: "app",
+          listingId,
+          active,
+        }),
       });
     }
 
@@ -213,10 +240,12 @@ export async function syncTenantToN8n(_prevState: ActionResult): Promise<ActionR
 
     await addTenantEvent(
       tenant.id,
-      "n8n_sync_sent",
-      {
+      TenantEventType.N8N_SYNC_SENT,
+      createEventPayload({
+        tenantId: tenant.id,
+        source: "app",
         mode: tenant.mode,
-      },
+      }),
       idempotencyKey,
     );
 
@@ -227,6 +256,53 @@ export async function syncTenantToN8n(_prevState: ActionResult): Promise<ActionR
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to sync with n8n.",
+      success: null,
+    };
+  }
+}
+
+export async function saveEconomicAssumptions(
+  _prevState: EconomicsActionResult,
+  formData: FormData,
+): Promise<EconomicsActionResult> {
+  void _prevState;
+  try {
+    const laborCostPerHourUsd = Number(getFormValue(formData, "laborCostPerHourUsd"));
+    const avgHandleMinutesPerMessage = Number(getFormValue(formData, "avgHandleMinutesPerMessage"));
+    const laborRate = Number.isFinite(laborCostPerHourUsd) ? Math.max(laborCostPerHourUsd, 0) : 0;
+    const avgMinutes = Number.isFinite(avgHandleMinutesPerMessage)
+      ? Math.max(avgHandleMinutesPerMessage, 0)
+      : 0;
+
+    const tenant = await updateTenantEconomicAssumptionsForCurrentUser({
+      laborCostPerHourUsd: laborRate,
+      avgHandleMinutesPerMessage: avgMinutes,
+    });
+
+    await addTenantEvent(
+      tenant.id,
+      TenantEventType.ONBOARDING_UPDATED,
+      createEventPayload({
+        tenantId: tenant.id,
+        source: "app",
+        scope: "economics",
+        laborCostPerHourUsd: laborRate,
+        avgHandleMinutesPerMessage: avgMinutes,
+      }),
+    );
+
+    const metrics = await getTenantEconomicsMetrics(tenant.id);
+    const listingBreakdown = await getListingEconomicsForCurrentUser();
+
+    return {
+      error: null,
+      success: "Economic assumptions saved.",
+      metrics,
+      listingBreakdown,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to save economic assumptions.",
       success: null,
     };
   }

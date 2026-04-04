@@ -20,7 +20,12 @@ Read this file at every run.
 - `docs/ops/N8N_PROTECTED_NODES.md`
 - `docs/ops/CHANGELOG_N8N.md` (required on workflow edits)
 - `docs/ops/GLOSSARY.md` (required when discussing architecture/schema naming)
+- `docs/ops/A6_RUNTIME_FIRST_ROUTING_PLAN.md` (required for runtime routing incident work)
 
 ## Non-Negotiable Rule
 
 Do not modify protected webhook nodes unless explicitly requested and tracked.
+
+## Runtime Routing Rule
+
+For incident diagnosis: prioritize runtime continuity over onboarding cache consistency.
