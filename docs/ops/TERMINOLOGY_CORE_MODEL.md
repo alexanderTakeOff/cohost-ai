@@ -70,3 +70,57 @@ System = Ownership + Operations + Distribution + Management + Intelligence
 ## Runtime Invariant
 
 For runtime routing, canonical identifier is `listing_id` from PMS webhook payload.
+
+## Identification Scheme (MVP)
+
+### Scope
+
+This scheme is intentionally minimal for the current MVP and closed beta.
+
+- One **Service Tenant** in Cohost AI maps to one **Hostify account**.
+- If one real-world client operates multiple Hostify accounts, model them as multiple tenants for now.
+- Do not use email as cross-system identity between Cohost AI and Hostify.
+
+### Identity Layers
+
+1. **App Login Identity**
+   - `auth.users.id`
+   - email
+   - Purpose: access to Cohost AI UI only
+
+2. **AI Platform Tenant Identity**
+   - `tenants.id`
+   - Purpose: internal isolation boundary for config, metrics, and control-plane state
+
+3. **Canonical External Identity**
+   - `Hostify customer_id`
+   - Purpose: canonical Hostify account identifier for the tenant
+   - Current evidence:
+     - runtime SNS topic account marker matches Hostify `customer_id`
+     - example: `hostify-webhook-go-700000252-message_new` <-> `customer_id = 700000252`
+
+4. **Runtime Routing Identity**
+   - `customer_id` / account marker
+   - `listing_id`
+   - `thread_id`
+   - `reservation_id`
+   - Purpose: route guest-message runtime safely without depending on onboarding cache freshness
+
+### Current Mapping Rule
+
+For MVP, use this working model:
+
+- `tenant` = one connected Hostify account in Cohost AI
+- `customer_id` = canonical external identifier of that tenant
+- one tenant can have many units / listings / aliases
+- runtime resolves inside tenant scope using account marker first, then listing identity
+
+### Non-Goals for MVP
+
+Do not introduce these as core model assumptions yet:
+
+- one tenant with multiple Hostify accounts
+- organization layer above multiple tenants
+- email-based matching between Cohost AI and Hostify
+
+These may be added later only if real product usage requires them.
