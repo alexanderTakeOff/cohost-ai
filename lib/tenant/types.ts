@@ -22,6 +22,14 @@ export type TenantMetrics = {
   aiInputTokens: number;
   aiOutputTokens: number;
   lastEventAt: string | null;
+  runtimeResolution: {
+    directMapping: number;
+    aliasMapping: number;
+    detailsFallback: number;
+    unresolved: number;
+  };
+  runtimeBackfills: number;
+  lastRuntimeIssueAt: string | null;
 };
 
 export type TenantEconomicsMetrics = {

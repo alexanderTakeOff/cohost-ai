@@ -1,3 +1,5 @@
+import { CLOSED_BETA_MAX_ACTIVE_LISTINGS } from "@/lib/product/beta";
+import { TenantEventType } from "@/lib/tenant/events";
 import { decryptSecret, encryptSecret } from "@/lib/security/secret-box";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -67,6 +69,23 @@ const LOSSLESS_ID_JSON_FIELDS = [
 function isMissingColumnError(error: { message?: string } | null, columnName: string) {
   const message = error?.message?.toLowerCase() ?? "";
   return message.includes(`column`) && message.includes(columnName.toLowerCase()) && message.includes("does not exist");
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function asPayloadString(payload: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
 }
 
 function normalizeListingRow(row: Record<string, unknown>): HostAccountListingRecord {
@@ -370,11 +389,19 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
   let aiCostUsd = 0;
   let aiInputTokens = 0;
   let aiOutputTokens = 0;
+  let runtimeBackfills = 0;
+  let lastRuntimeIssueAt: string | null = null;
+  const runtimeResolution = {
+    directMapping: 0,
+    aliasMapping: 0,
+    detailsFallback: 0,
+    unresolved: 0,
+  };
 
   for (const event of events) {
+    const payload = asRecord(event.payload);
     if (event.event_type === "ai_reply") {
       aiReplies += 1;
-      const payload = (event.payload ?? {}) as Record<string, unknown>;
       const costValue = payload.aiCostUsd;
       const inputTokens = payload.aiInputTokens;
       const outputTokens = payload.aiOutputTokens;
@@ -391,6 +418,34 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
     if (event.event_type === "guest_message") {
       guestMessages += 1;
     }
+    if (event.event_type === TenantEventType.RUNTIME_CONFIG_MISSING) {
+      runtimeResolution.unresolved += 1;
+      if (!lastRuntimeIssueAt) {
+        lastRuntimeIssueAt = event.created_at;
+      }
+      continue;
+    }
+    if (event.event_type === TenantEventType.LISTING_MAPPING_BACKFILLED) {
+      runtimeBackfills += 1;
+      continue;
+    }
+
+    const resolutionPath = asPayloadString(payload, "resolutionPath", "resolution_path");
+    if (resolutionPath === "direct_mapping") {
+      runtimeResolution.directMapping += 1;
+    } else if (resolutionPath === "alias_mapping") {
+      runtimeResolution.aliasMapping += 1;
+    } else if (resolutionPath === "details_fallback") {
+      runtimeResolution.detailsFallback += 1;
+      if (!lastRuntimeIssueAt) {
+        lastRuntimeIssueAt = event.created_at;
+      }
+    } else if (resolutionPath === "unresolved") {
+      runtimeResolution.unresolved += 1;
+      if (!lastRuntimeIssueAt) {
+        lastRuntimeIssueAt = event.created_at;
+      }
+    }
   }
 
   return {
@@ -401,7 +456,157 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
     aiInputTokens,
     aiOutputTokens,
     lastEventAt: events[0]?.created_at ?? null,
+    runtimeResolution,
+    runtimeBackfills,
+    lastRuntimeIssueAt,
   };
+}
+
+async function safeAddTenantEventWithAdmin(
+  tenantId: string,
+  eventType: CanonicalEventType,
+  payload: Record<string, unknown>,
+  idempotencyKey?: string,
+) {
+  try {
+    await addTenantEventWithAdmin(tenantId, eventType, payload, idempotencyKey);
+  } catch (error) {
+    console.error("Failed to persist tenant event", {
+      tenantId,
+      eventType,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+export async function trackRuntimeResolution(input: {
+  tenantId: string;
+  resolutionPath: "direct_mapping" | "alias_mapping" | "details_fallback";
+  webhookListingId: string;
+  canonicalListingId: string;
+  accountId?: string | null;
+  hostifyAccountRef?: string | null;
+  threadId?: string | null;
+  reservationId?: string | null;
+}) {
+  const payload = {
+    tenantId: input.tenantId,
+    source: "app" as const,
+    listingId: input.canonicalListingId,
+    webhookListingId: input.webhookListingId,
+    canonicalListingId: input.canonicalListingId,
+    accountId: input.accountId ?? null,
+    hostifyAccountRef: input.hostifyAccountRef ?? null,
+    resolutionPath: input.resolutionPath,
+    threadId: input.threadId ?? null,
+    reservationId: input.reservationId ?? null,
+  };
+
+  const idempotencyKey = [
+    "runtime-resolution",
+    input.tenantId,
+    input.resolutionPath,
+    input.webhookListingId,
+    input.canonicalListingId,
+    input.threadId ?? "no-thread",
+    input.reservationId ?? "no-reservation",
+  ].join(":");
+
+  await safeAddTenantEventWithAdmin(
+    input.tenantId,
+    TenantEventType.RUNTIME_RESOLUTION_OBSERVED,
+    payload,
+    idempotencyKey,
+  );
+
+  if (input.resolutionPath !== "details_fallback") {
+    return;
+  }
+
+  const backfillIdempotencyKey = [
+    "listing-mapping-backfilled",
+    input.tenantId,
+    input.webhookListingId,
+    input.canonicalListingId,
+    input.threadId ?? "no-thread",
+    input.reservationId ?? "no-reservation",
+  ].join(":");
+
+  await safeAddTenantEventWithAdmin(
+    input.tenantId,
+    TenantEventType.LISTING_MAPPING_BACKFILLED,
+    payload,
+    backfillIdempotencyKey,
+  );
+}
+
+export async function trackRuntimeUnresolved(input: {
+  tenantId: string;
+  webhookListingId: string;
+  canonicalListingId?: string | null;
+  accountId?: string | null;
+  hostifyAccountRef?: string | null;
+  threadId?: string | null;
+  reservationId?: string | null;
+}) {
+  const payload = {
+    tenantId: input.tenantId,
+    source: "app" as const,
+    listingId: input.canonicalListingId ?? input.webhookListingId,
+    webhookListingId: input.webhookListingId,
+    canonicalListingId: input.canonicalListingId ?? null,
+    accountId: input.accountId ?? null,
+    hostifyAccountRef: input.hostifyAccountRef ?? null,
+    resolutionPath: "unresolved",
+    threadId: input.threadId ?? null,
+    reservationId: input.reservationId ?? null,
+  };
+
+  const idempotencyKey = [
+    "runtime-unresolved",
+    input.tenantId,
+    input.webhookListingId,
+    input.threadId ?? "no-thread",
+    input.reservationId ?? "no-reservation",
+  ].join(":");
+
+  await safeAddTenantEventWithAdmin(
+    input.tenantId,
+    TenantEventType.RUNTIME_CONFIG_MISSING,
+    payload,
+    idempotencyKey,
+  );
+}
+
+export async function getClosedBetaTenantCount() {
+  const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("tenants")
+    .select("id", { count: "exact", head: true });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+export async function getActiveListingCountForCurrentUser() {
+  const tenant = await getTenantForCurrentUser();
+  if (!tenant) {
+    return 0;
+  }
+
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("host_account_listings")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenant.id)
+    .eq("active", true);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return count ?? 0;
 }
 
 export async function addTenantEvent(
@@ -992,6 +1197,15 @@ export async function setHostAccountListingActiveForCurrentUser(listingId: strin
     throw new Error("You must be logged in.");
   }
 
+  if (active) {
+    const activeCount = await getActiveListingCountForCurrentUser();
+    if (activeCount >= CLOSED_BETA_MAX_ACTIVE_LISTINGS) {
+      throw new Error(
+        `Closed beta currently allows up to ${CLOSED_BETA_MAX_ACTIVE_LISTINGS} active listings per client.`,
+      );
+    }
+  }
+
   return setHostAccountListingActive(tenant.id, listingId, active);
 }
 
@@ -1204,7 +1418,7 @@ function extractHostifyAccountRefFromTopicArn(topicArn: string | null | undefine
   return match?.[1] ?? null;
 }
 
-async function getTenantByHostifyAccountRef(accountRef: string): Promise<TenantRecord | null> {
+export async function getTenantByHostifyAccountRef(accountRef: string): Promise<TenantRecord | null> {
   const supabase = createAdminClient();
   const mappingAttempt = await supabase
     .from("host_account_listings")
@@ -1269,6 +1483,11 @@ async function getTenantByHostifyAccountRef(accountRef: string): Promise<TenantR
     }
   }
   return null;
+}
+
+export async function getTenantIdByHostifyAccountRef(accountRef: string) {
+  const tenant = await getTenantByHostifyAccountRef(accountRef);
+  return tenant?.id ?? null;
 }
 
 async function fetchHostifyListingDetailsByListingId(hostifyApiKey: string, listingId: string) {
