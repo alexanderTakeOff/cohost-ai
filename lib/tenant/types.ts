@@ -4,6 +4,10 @@ export type TenantRecord = {
   id: string;
   user_id: string;
   hostify_api_key_encrypted: string | null;
+  hostify_customer_id: string | null;
+  hostify_customer_name: string | null;
+  hostify_integration_id: string | null;
+  hostify_integration_nickname: string | null;
   telegram_chat_id: string | null;
   global_instructions: string | null;
   labor_hourly_rate_usd: number | null;

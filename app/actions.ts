@@ -12,6 +12,7 @@ import {
   getTenantEconomicsMetrics,
   getListingEconomicsForCurrentUser,
   setHostAccountListingActiveForCurrentUser,
+  syncTenantHostifyBindingForCurrentUser,
   syncHostAccountListingsFromHostify,
   getTenantForCurrentUser,
   updateTenantEconomicAssumptionsForCurrentUser,
@@ -81,6 +82,10 @@ export async function saveOnboarding(
     });
     const decryptedHostifyKey = getDecryptedHostifyKey(tenant);
     const shouldSyncListings = saveScope !== "assistant";
+    const hostifyBinding =
+      shouldSyncListings && decryptedHostifyKey
+        ? await syncTenantHostifyBindingForCurrentUser(decryptedHostifyKey)
+        : null;
     const syncSummary =
       shouldSyncListings && decryptedHostifyKey
         ? await syncHostAccountListingsFromHostify(tenant.id, decryptedHostifyKey)
@@ -96,6 +101,8 @@ export async function saveOnboarding(
         scope: saveScope || "account",
         telegramChatId: tenant.telegram_chat_id,
         globalInstructionsLength: tenant.global_instructions?.length ?? 0,
+        hostifyCustomerId: hostifyBinding?.binding.customerId ?? tenant.hostify_customer_id ?? null,
+        hostifyCustomerName: hostifyBinding?.binding.customerName ?? tenant.hostify_customer_name ?? null,
         listingsFetched: syncSummary.fetched,
         listingsUpserted: syncSummary.upserted,
       }),
@@ -119,7 +126,7 @@ export async function saveOnboarding(
     return {
       error: null,
       success: shouldSyncListings
-        ? `Onboarding saved successfully. Listings synced: ${syncSummary.fetched}.`
+        ? `Onboarding saved successfully. Hostify account ${hostifyBinding?.binding.customerId ?? tenant.hostify_customer_id ?? "confirmed"}. Listings synced: ${syncSummary.fetched}.`
         : "Assistant settings saved successfully.",
     };
   } catch (error) {

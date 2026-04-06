@@ -85,6 +85,19 @@ export default async function OnboardingPage() {
           </p>
         ) : null}
 
+        {tenant?.hostify_customer_id ? (
+          <div className="rounded-md border border-black/10 p-4 text-sm text-zinc-700 dark:border-white/15 dark:text-zinc-300">
+            <p className="font-medium">Connected Hostify account</p>
+            <div className="mt-2 space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+              <p>
+                Customer ID: <span className="font-mono">{tenant.hostify_customer_id}</span>
+              </p>
+              <p>Customer name: {tenant.hostify_customer_name ?? "Not available"}</p>
+              <p>Integration: {tenant.hostify_integration_nickname ?? "Not available"}</p>
+            </div>
+          </div>
+        ) : null}
+
         <OnboardingForm tenant={tenant} listings={listings} />
 
         {!hasN8nEnv() ? (
