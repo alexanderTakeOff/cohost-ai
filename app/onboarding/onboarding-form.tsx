@@ -91,6 +91,14 @@ export function OnboardingForm({
           </p>
           <div className="mt-3 space-y-2 text-zinc-700 dark:text-zinc-300">
             <p>
+              Hostify customer id:{" "}
+              <span className="font-medium">{tenant.hostify_customer_id ?? "Not connected yet"}</span>
+            </p>
+            <p>
+              Hostify customer name:{" "}
+              <span className="font-medium">{tenant.hostify_customer_name ?? "Not available yet"}</span>
+            </p>
+            <p>
               Telegram chat id: <span className="font-medium">{tenant.telegram_chat_id ?? "Not set"}</span>
             </p>
             <p>
@@ -136,6 +144,19 @@ export function OnboardingForm({
             Account settings control the runtime resolver inputs, but the onboarding table is not the sole runtime
             source of truth. Save here first so the system can verify Hostify access and operator delivery settings.
           </div>
+          {tenant?.hostify_customer_id ? (
+            <div className="rounded-md border border-black/10 p-3 text-xs text-zinc-700 dark:border-white/15 dark:text-zinc-300">
+              This tenant is currently linked to Hostify account{" "}
+              <span className="font-mono">{tenant.hostify_customer_id}</span>
+              {tenant.hostify_customer_name ? (
+                <>
+                  {" "}
+                  (<span className="font-medium">{tenant.hostify_customer_name}</span>)
+                </>
+              ) : null}
+              . If you need a different Hostify account, create a separate tenant instead of replacing this binding.
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <label htmlFor="hostifyApiKey" className="block text-sm font-medium">

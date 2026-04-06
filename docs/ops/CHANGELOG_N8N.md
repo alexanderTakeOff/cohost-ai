@@ -19,6 +19,26 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 
 - Date (UTC): 2026-04-06
 - Operator: Cursor
+- Workflow: App tenant binding hardening (Chunk A, no direct n8n node edits)
+- Node(s): n/a
+- Change summary:
+  - Added tenant-level Hostify binding fields for canonical account identity:
+    - `hostify_customer_id`
+    - `hostify_customer_name`
+    - `hostify_integration_id`
+    - `hostify_integration_nickname`
+  - Added onboarding-side Hostify account binding sync from API key and mismatch protection when a tenant is already linked to a different Hostify account.
+  - Exposed connected Hostify account details in onboarding and dashboard so operators can confirm which external account a tenant is bound to.
+- Reason:
+  - Make `tenant = one Hostify account` explicit in the app so onboarding and runtime refer to the same canonical external account identity.
+- Verification:
+  - `npm run lint`
+  - `npm run build`
+- Rollback reference:
+  - Revert this app/docs chunk and keep prior implicit account binding through listings/runtime only.
+
+- Date (UTC): 2026-04-06
+- Operator: Cursor
 - Workflow: App runtime observability + dashboard UX + closed beta messaging (no direct n8n node edits)
 - Node(s): n/a
 - Change summary:

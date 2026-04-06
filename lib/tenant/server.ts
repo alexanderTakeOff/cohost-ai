@@ -31,6 +31,9 @@ type HostifyListingSyncRecord = {
   targetId: string | null;
   parentListingId: string | null;
   accountId: string | null;
+  customerName: string | null;
+  integrationId: string | null;
+  integrationNickname: string | null;
   hostifyAccountRef: string | null;
 };
 
@@ -199,6 +202,9 @@ function normalizeHostifyListing(item: unknown): HostifyListingSyncRecord | null
     targetId: toLosslessId(item.target_id ?? item.targetId),
     parentListingId: toLosslessId(item.parent_listing_id ?? item.parentListingId),
     accountId: toLosslessId(item.customer_id ?? item.customerId),
+    customerName: toStringOrNull(item.customer_name ?? item.customerName),
+    integrationId: toLosslessId(item.integration_id ?? item.integrationId),
+    integrationNickname: toStringOrNull(item.integration_nickname ?? item.integrationNickname),
     hostifyAccountRef: toStringOrNull(
       item.hostify_account_ref ?? item.hostifyAccountRef ?? item.account_id ?? item.accountId,
     ),
@@ -367,6 +373,88 @@ export async function upsertTenantForCurrentUser(input: OnboardingInput) {
   }
 
   return legacyAttempt.data;
+}
+
+async function fetchHostifyAccountBinding(hostifyApiKey: string) {
+  const listings = await fetchHostifyListings(hostifyApiKey);
+  const firstWithAccount = listings.find((listing) => listing.accountId);
+  if (!firstWithAccount?.accountId) {
+    return null;
+  }
+
+  return {
+    customerId: firstWithAccount.accountId,
+    customerName: firstWithAccount.customerName,
+    integrationId: firstWithAccount.integrationId,
+    integrationNickname: firstWithAccount.integrationNickname,
+  };
+}
+
+export async function syncTenantHostifyBindingForCurrentUser(hostifyApiKey: string) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("You must be logged in.");
+  }
+
+  const binding = await fetchHostifyAccountBinding(hostifyApiKey);
+  if (!binding?.customerId) {
+    throw new Error("Unable to determine Hostify account from the provided API key.");
+  }
+
+  const supabase = await createClient();
+  const { data: existingTenant, error: existingTenantError } = await supabase
+    .from("tenants")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle<TenantRecord>();
+  if (existingTenantError) {
+    throw new Error(existingTenantError.message);
+  }
+
+  const existingCustomerId = existingTenant?.hostify_customer_id?.trim() ?? null;
+  if (existingCustomerId && existingCustomerId !== binding.customerId) {
+    throw new Error(
+      `This tenant is already linked to Hostify account ${existingCustomerId}. Create a separate tenant for Hostify account ${binding.customerId} instead of replacing the existing binding.`,
+    );
+  }
+
+  const updatePayload = {
+    hostify_customer_id: binding.customerId,
+    hostify_customer_name: binding.customerName,
+    hostify_integration_id: binding.integrationId,
+    hostify_integration_nickname: binding.integrationNickname,
+  };
+
+  const firstAttempt = await supabase
+    .from("tenants")
+    .update(updatePayload)
+    .eq("user_id", userId)
+    .select("*")
+    .single<TenantRecord>();
+  if (!firstAttempt.error) {
+    return {
+      tenant: firstAttempt.data,
+      binding,
+    };
+  }
+
+  const isLegacySchemaError =
+    isMissingColumnError(firstAttempt.error, "hostify_customer_id") ||
+    isMissingColumnError(firstAttempt.error, "hostify_customer_name") ||
+    isMissingColumnError(firstAttempt.error, "hostify_integration_id") ||
+    isMissingColumnError(firstAttempt.error, "hostify_integration_nickname");
+  if (!isLegacySchemaError) {
+    throw new Error(firstAttempt.error.message);
+  }
+
+  if (!existingTenant) {
+    throw new Error("Tenant not found.");
+  }
+
+  return {
+    tenant: existingTenant,
+    binding,
+  };
 }
 
 export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics> {

@@ -95,6 +95,27 @@ export default async function DashboardPage() {
           Signed in as: {user.email ?? "Unknown user"}
         </div>
 
+        <div className="rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
+          <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Connected Hostify account
+          </p>
+          <div className="mt-2 space-y-2 text-zinc-700 dark:text-zinc-300">
+            <p>
+              Customer ID:{" "}
+              <span className="font-mono font-medium">{tenant.hostify_customer_id ?? "Not linked yet"}</span>
+            </p>
+            <p>
+              Customer name: <span className="font-medium">{tenant.hostify_customer_name ?? "Unknown"}</span>
+            </p>
+            <p>
+              Integration:{" "}
+              <span className="font-medium">
+                {tenant.hostify_integration_nickname ?? tenant.hostify_integration_id ?? "Unknown"}
+              </span>
+            </p>
+          </div>
+        </div>
+
         <div
           className={`rounded-md border p-4 text-sm ${
             runtimeHealthy
