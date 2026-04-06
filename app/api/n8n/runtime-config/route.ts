@@ -6,7 +6,10 @@ import { getN8nEnv } from "@/lib/n8n/env";
 import { signPayload } from "@/lib/n8n/signer";
 import {
   extractHostifyAccountRefFromTopicArn,
+  getTenantIdByHostifyAccountRef,
   resolveRuntimeConfigByAccountAndListing,
+  trackRuntimeResolution,
+  trackRuntimeUnresolved,
   upsertHostAccountListing,
 } from "@/lib/tenant/server";
 
@@ -55,6 +58,19 @@ export async function POST(request: NextRequest) {
       reservationId: payload.reservationId ?? null,
     });
     if (!resolved) {
+      const unresolvedAccountRef = payload.hostifyAccountRef ?? accountRefFromTopic ?? null;
+      if (unresolvedAccountRef) {
+        const unresolvedTenantId = await getTenantIdByHostifyAccountRef(unresolvedAccountRef);
+        if (unresolvedTenantId) {
+          await trackRuntimeUnresolved({
+            tenantId: unresolvedTenantId,
+            webhookListingId: payload.listingId,
+            hostifyAccountRef: unresolvedAccountRef,
+            threadId: payload.threadId ?? null,
+            reservationId: payload.reservationId ?? null,
+          });
+        }
+      }
       return NextResponse.json(
         {
           error: "No active host-account mapping found for listing.",
@@ -73,6 +89,17 @@ export async function POST(request: NextRequest) {
         { hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic },
       );
     }
+
+    await trackRuntimeResolution({
+      tenantId: resolved.tenant.id,
+      resolutionPath: resolved.resolutionPath,
+      webhookListingId: payload.listingId,
+      canonicalListingId: resolved.mapping.listing_id,
+      accountId: resolved.mapping.account_id ?? null,
+      hostifyAccountRef: resolved.mapping.hostify_account_ref ?? payload.hostifyAccountRef ?? accountRefFromTopic,
+      threadId: payload.threadId ?? null,
+      reservationId: payload.reservationId ?? null,
+    });
 
     return NextResponse.json({
       ok: true,

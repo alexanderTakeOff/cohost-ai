@@ -9,6 +9,7 @@ import {
   saveOnboarding,
   toggleListingActive,
 } from "@/app/actions";
+import { CLOSED_BETA_MAX_ACTIVE_LISTINGS } from "@/lib/product/beta";
 import type { HostAccountListingRecord, TenantRecord } from "@/lib/tenant/types";
 
 type FormState = {
@@ -64,6 +65,7 @@ export function OnboardingForm({
   );
   const [activeTab, setActiveTab] = useState<OnboardingTab>(tenant ? "listings" : "account");
   const hostifyRequired = !tenant?.hostify_api_key_encrypted;
+  const activeListingsCount = listings.filter((listing) => listing.active).length;
 
   useEffect(() => {
     if (state.success || refreshState.success || toggleState.success || economicsState.success) {
@@ -73,6 +75,15 @@ export function OnboardingForm({
 
   return (
     <div className="space-y-6">
+      <div className="rounded-md border border-black/10 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-300">
+        <p className="font-medium">Suggested setup order</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-zinc-600 dark:text-zinc-400">
+          <li>Save account settings first so Hostify access and Telegram routing are stored.</li>
+          <li>Refresh listings and enable only the listings you want to test during closed beta.</li>
+          <li>Keep draft mode on until dashboard activity looks healthy for your account.</li>
+        </ol>
+      </div>
+
       {tenant ? (
         <div className="rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
@@ -92,6 +103,12 @@ export function OnboardingForm({
               Global instructions:{" "}
               <span className="font-medium">
                 {tenant.global_instructions?.trim() ? "Configured" : "Not set"}
+              </span>
+            </p>
+            <p>
+              Closed beta active listings:{" "}
+              <span className="font-medium">
+                {activeListingsCount} / {CLOSED_BETA_MAX_ACTIVE_LISTINGS}
               </span>
             </p>
           </div>
@@ -115,6 +132,11 @@ export function OnboardingForm({
 
       {activeTab === "account" ? (
         <form action={action} className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15">
+          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            Account settings control the runtime resolver inputs, but the onboarding table is not the sole runtime
+            source of truth. Save here first so the system can verify Hostify access and operator delivery settings.
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="hostifyApiKey" className="block text-sm font-medium">
               Hostify API key
@@ -131,7 +153,7 @@ export function OnboardingForm({
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {hostifyRequired
                 ? "Required for first setup."
-                : "Optional: leave empty to keep existing key."}
+                : "Optional: leave empty to keep the existing key and save other changes only."}
             </p>
           </div>
 
@@ -150,7 +172,8 @@ export function OnboardingForm({
               className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Numeric chat id from Telegram (can include leading minus).
+              Numeric chat id from Telegram (can include a leading minus). This is where operator-visible alerts and
+              assistant outputs are routed for this client.
             </p>
           </div>
 
@@ -167,6 +190,10 @@ export function OnboardingForm({
               <option value="draft">Draft (manual approve)</option>
               <option value="autopilot">Autopilot (auto send)</option>
             </select>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Start in draft mode for beta. Switch to autopilot only after checking dashboard activity and listing
+              coverage.
+            </p>
           </div>
 
           <input
@@ -197,13 +224,18 @@ export function OnboardingForm({
 
       {activeTab === "listings" && tenant ? (
         <div className="space-y-4 rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
+          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            Closed beta currently allows up to {CLOSED_BETA_MAX_ACTIVE_LISTINGS} active listings per client. Disabled
+            listings stay visible here for control-plane review, but should not be used for beta traffic.
+          </div>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 Listings
               </p>
               <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
-                Pulled from Hostify by your API key. Route matching uses listing ID from webhook.
+                Pulled from Hostify by your API key. Route matching uses the webhook listing ID, while this table is
+                your operator control surface for enable or disable decisions.
               </p>
             </div>
             <form action={refreshAction}>
@@ -219,7 +251,8 @@ export function OnboardingForm({
 
           {listings.length === 0 ? (
             <p className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              No listings synced yet. Save onboarding or press refresh.
+              No listings synced yet. Save account settings first, then refresh listings to confirm what will be
+              available for beta testing.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-md border border-black/10 dark:border-white/15">
@@ -287,10 +320,18 @@ export function OnboardingForm({
             <p className="text-sm text-emerald-700 dark:text-emerald-300">{toggleState.success}</p>
           ) : null}
         </div>
+      ) : activeTab === "listings" ? (
+        <div className="rounded-md border border-amber-300/50 bg-amber-50/80 p-4 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+          Save the Account tab first so Hostify access is stored, then return here to sync and review listings.
+        </div>
       ) : null}
 
       {activeTab === "assistant" ? (
         <form action={action} className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15">
+          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            Use this space for tenant-wide guidance. Keep listing-specific operational details in Hostify so runtime and
+            operators stay aligned.
+          </div>
           <div className="space-y-2">
             <label htmlFor="globalInstructions" className="block text-sm font-medium">
               Global instructions (tenant-level)
@@ -338,6 +379,10 @@ export function OnboardingForm({
           action={economicsAction}
           className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15"
         >
+          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            These values are for beta ROI visibility only. They help you estimate value without affecting runtime
+            routing or message delivery.
+          </div>
           <div className="space-y-2">
             <label htmlFor="laborCostPerHourUsd" className="block text-sm font-medium">
               Labor cost per hour (USD)

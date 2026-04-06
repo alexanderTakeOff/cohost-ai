@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app), with Supabase authentication and a Cohost AI MVP control surface.
+This repository contains the Cohost AI MVP control plane built with Next.js, Supabase, Hostify, and n8n.
 
 ## Getting Started
 
@@ -33,10 +33,21 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 Auth and MVP pages:
 
-- `/login` - sign in / sign up with email and password
-- `/onboarding` - connect Hostify key, Telegram chat id, and select mode
-- `/dashboard` - status/mode/metrics with manual sync-to-n8n action
-- `/` - simple entry page with links after sign-in
+- `/login` - sign in or request access to the closed beta
+- `/onboarding` - connect Hostify, Telegram, listings, assistant settings, and economics
+- `/dashboard` - read-only status, runtime routing counters, and economics visibility
+- `/` - product overview and recommended next steps after sign-in
+
+## Closed beta scope
+
+Current product assumptions for the closed beta:
+
+- up to 10 client accounts
+- up to 30 active listings per client in the control plane
+- free during beta
+- draft mode recommended first, autopilot only after controlled validation
+
+The onboarding listings table is used for operator visibility and enable/disable policy. Runtime routing remains runtime-first and should not depend on the onboarding cache being perfectly fresh.
 
 ## Supabase schema setup
 

@@ -17,6 +17,24 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 
 ## 2026-04-01
 
+- Date (UTC): 2026-04-06
+- Operator: Cursor
+- Workflow: App runtime observability + dashboard UX + closed beta messaging (no direct n8n node edits)
+- Node(s): n/a
+- Change summary:
+  - Added app-side runtime resolution observability events for `direct_mapping`, `alias_mapping`, `details_fallback`, and `unresolved`.
+  - Added structured `listing_mapping_backfilled` emission for details-fallback discovery so dashboard counters can distinguish routing path from backfill activity.
+  - Extended dashboard with runtime routing counters, unresolved/backfill visibility, and beta-facing operational guidance.
+  - Updated home, login, onboarding, and dashboard copy to reflect closed beta scope and runtime-first architecture.
+  - Added control-plane guard for up to 30 active listings per client during closed beta without making onboarding a runtime SPOF.
+- Reason:
+  - Complete C7 readiness work so external beta testers can understand system state while operators monitor runtime routing health without relying on onboarding cache freshness.
+- Verification:
+  - `npm run lint`
+  - `npm run build`
+- Rollback reference:
+  - Revert this app/docs chunk to restore prior dashboard copy and pre-C7 runtime observability behavior.
+
 - Date (UTC): 2026-04-03
 - Operator: Cursor
 - Workflow: Planning docs (no runtime node edits)

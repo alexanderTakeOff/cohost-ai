@@ -1,6 +1,6 @@
 # Cohost AI MVP Execution Board
 
-Last Updated: 2026-04-03  
+Last Updated: 2026-04-06  
 Source of Truth: This file is the canonical execution tracker for MVP operations and delivery.
 
 ## Status Legend
@@ -29,7 +29,8 @@ Source of Truth: This file is the canonical execution tracker for MVP operations
 | C3 | AI cost telemetry aggregation | DONE | `aiCostUsd`, `aiInputTokens`, `aiOutputTokens` aggregated from `ai_reply` events | Medium | Team | `getTenantMetrics`, `getTenantEconomicsMetrics`, listing economics aggregation |
 | C4 | Tenant economic assumptions | DONE | Tenant stores labor/hour + avg minutes/message and formulas produce labor-saved + net value | Medium | Team | migration `supabase/2026-04-03-a7-tenant-economic-assumptions.sql`, onboarding economics tab save action |
 | C5 | MVP economics UI | DONE | Dashboard shows cost/savings/net + listing-level table; onboarding has economics settings tab | Medium | Team | `app/dashboard/page.tsx`, `app/onboarding/onboarding-form.tsx` |
-| C6 | Runtime identity hardening (account marker + listing aliases) | IN_PROGRESS | Resolver uses account-scoped routing and alias fallback before graceful unresolved handling | High | Team | App-side implementation in progress: alias table migration, resolver fallback, and n8n apply guide `docs/ops/n8n/A6_APPLY_GUIDE.md` |
+| C6 | Runtime identity hardening (account marker + listing aliases) | DONE | Resolver uses account-scoped routing and alias fallback before graceful unresolved handling | High | Team | App runtime resolver now uses account marker extraction, alias fallback, details fallback, and graceful unresolved handling; see `app/api/n8n/runtime-config/route.ts`, `lib/tenant/server.ts`, `docs/ops/n8n/A6_APPLY_GUIDE.md` |
+| C7 | Runtime observability + closed beta UX readiness | DONE | Resolution paths are tracked (`direct_mapping`, `alias_mapping`, `details_fallback`, `unresolved`), dashboard shows runtime counters, and onboarding/dashboard/home/login explain beta status and next steps without making onboarding a runtime SPOF | Medium | Team | App-side telemetry added for runtime resolution outcomes and backfills; dashboard exposes runtime counters and issue summary; control plane now reflects closed beta limits (10 clients / 30 active listings) and guidance in `app/dashboard/page.tsx`, `app/onboarding/*`, `app/page.tsx`, `app/login/login-form.tsx` |
 
 ## Recently Completed Product Chunks
 

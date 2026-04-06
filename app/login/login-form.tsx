@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
+import {
+  CLOSED_BETA_LABEL,
+  CLOSED_BETA_MAX_ACTIVE_LISTINGS,
+  CLOSED_BETA_MAX_TENANTS,
+  PRODUCT_NAME,
+} from "@/lib/product/beta";
 import { createClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
@@ -51,7 +57,7 @@ export function LoginForm() {
     setIsSubmitting(true);
     setMessage(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -66,7 +72,9 @@ export function LoginForm() {
 
     setMessageType("success");
     setMessage(
-      "Sign-up request sent. If email confirmation is enabled in Supabase, confirm via email, then sign in.",
+      data.user?.identities?.length
+        ? "Access request created. If email confirmation is enabled, confirm via email and then sign in."
+        : "This email already exists. If you were invited earlier, sign in instead of creating a new account.",
     );
   }
 
@@ -90,10 +98,22 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-6 rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/15 dark:bg-black">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Login</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Sign in with email/password or create a new account.
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+          {CLOSED_BETA_LABEL}
         </p>
+        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Sign in with email/password or request access for a new beta account.
+        </p>
+      </div>
+
+      <div className="rounded-md border border-black/10 bg-zinc-50 p-4 text-xs text-zinc-700 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-300">
+        <p className="font-medium">Closed beta scope</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>Up to {CLOSED_BETA_MAX_TENANTS} client accounts during beta.</li>
+          <li>Up to {CLOSED_BETA_MAX_ACTIVE_LISTINGS} active listings per client.</li>
+          <li>Free during beta while onboarding, routing, and operator UX are refined.</li>
+        </ul>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -161,6 +181,10 @@ export function LoginForm() {
             {message}
           </p>
         ) : null}
+
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Recommended flow: sign in if you already have access, then complete onboarding in draft mode first.
+        </p>
       </form>
     </div>
   );

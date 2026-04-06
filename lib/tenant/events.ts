@@ -8,6 +8,8 @@ export const TenantEventType = {
   LISTINGS_REFRESHED: "listings_refreshed",
   LISTING_STATUS_CHANGED: "listing_status_changed",
   LISTING_INACTIVE_BLOCKED: "listing_inactive_blocked",
+  RUNTIME_RESOLUTION_OBSERVED: "runtime_resolution_observed",
+  LISTING_MAPPING_BACKFILLED: "listing_mapping_backfilled",
   RUNTIME_CONFIG_MISSING: "runtime_config_missing",
 } as const;
 
@@ -40,6 +42,8 @@ const EXTERNAL_EVENT_ALIASES: Record<string, TenantEventType> = {
   guest_message: TenantEventType.GUEST_MESSAGE,
   ai_reply: TenantEventType.AI_REPLY,
   listing_inactive_blocked: TenantEventType.LISTING_INACTIVE_BLOCKED,
+  runtime_resolution_observed: TenantEventType.RUNTIME_RESOLUTION_OBSERVED,
+  listing_mapping_backfilled: TenantEventType.LISTING_MAPPING_BACKFILLED,
   runtime_config_missing: TenantEventType.RUNTIME_CONFIG_MISSING,
 };
 
@@ -66,7 +70,7 @@ function asNumber(value: unknown): number | null {
 
 export function canonicalizeExternalEventType(eventTypeRaw: string): TenantEventType {
   const normalized = eventTypeRaw.trim().toLowerCase();
-  return EXTERNAL_EVENT_ALIASES[normalized] ?? TenantEventType.RUNTIME_CONFIG_MISSING;
+  return EXTERNAL_EVENT_ALIASES[normalized] ?? TenantEventType.N8N_SYNC_ERROR;
 }
 
 export function createEventPayload(payload: EventPayloadBase & Record<string, unknown>) {
