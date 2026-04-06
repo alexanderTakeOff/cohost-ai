@@ -377,16 +377,21 @@ export async function upsertTenantForCurrentUser(input: OnboardingInput) {
 
 async function fetchHostifyAccountBinding(hostifyApiKey: string) {
   const listings = await fetchHostifyListings(hostifyApiKey);
-  const firstWithAccount = listings.find((listing) => listing.accountId);
-  if (!firstWithAccount?.accountId) {
+  const firstListing = listings[0];
+  if (!firstListing?.listingId) {
+    return null;
+  }
+
+  const details = await fetchHostifyListingDetailsByListingId(hostifyApiKey, firstListing.listingId);
+  if (!details?.accountId) {
     return null;
   }
 
   return {
-    customerId: firstWithAccount.accountId,
-    customerName: firstWithAccount.customerName,
-    integrationId: firstWithAccount.integrationId,
-    integrationNickname: firstWithAccount.integrationNickname,
+    customerId: details.accountId,
+    customerName: details.customerName,
+    integrationId: details.integrationId,
+    integrationNickname: details.integrationNickname,
   };
 }
 
@@ -1612,6 +1617,11 @@ async function fetchHostifyListingDetailsByListingId(hostifyApiKey: string, list
     targetId: toLosslessId(listingObj.target_id ?? listingObj.targetId),
     parentListingId: toLosslessId(listingObj.parent_listing_id ?? listingObj.parentListingId),
     accountId: toLosslessId(listingObj.customer_id ?? listingObj.customerId),
+    customerName: toStringOrNull(listingObj.customer_name ?? listingObj.customerName),
+    integrationId: toLosslessId(listingObj.integration_id ?? listingObj.integrationId),
+    integrationNickname: toStringOrNull(
+      listingObj.integration_nickname ?? listingObj.integrationNickname,
+    ),
     hostifyAccountRef: toLosslessId(listingObj.customer_id ?? listingObj.customerId),
   };
 }
