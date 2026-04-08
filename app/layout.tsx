@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { AssistantProvider } from "@/components/assistant/assistant-provider";
+import { AssistantShell } from "@/components/assistant/assistant-shell";
 import { CLOSED_BETA_LABEL, PRODUCT_NAME } from "@/lib/product/beta";
 import "./globals.css";
 
@@ -32,7 +33,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AssistantProvider>{children}</AssistantProvider>
+        <AssistantProvider>
+          {children}
+          <AssistantShell />
+        </AssistantProvider>
       </body>
     </html>
   );

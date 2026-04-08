@@ -97,6 +97,10 @@ export type AssistantUserMessageRequest = {
   message: string;
   authenticated: boolean;
   tenant?: {
+    hasTenant?: boolean;
+    hasHostifyBinding?: boolean;
+    hasHostifyKey?: boolean;
+    hostifyCustomerId?: string | null;
     telegramChatId?: string | null;
   } | null;
 };

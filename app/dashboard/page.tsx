@@ -9,7 +9,6 @@ import {
 } from "@/lib/product/beta";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import {
   getListingEconomicsForCurrentUser,
   getMaskedHostifyKey,
@@ -73,30 +72,30 @@ export default async function DashboardPage() {
     : "No unresolved runtime issues observed yet.";
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
-      <section className="w-full max-w-2xl space-y-6 rounded-lg border border-black/10 bg-white p-8 shadow-sm dark:border-white/15 dark:bg-black">
+    <main className="flex flex-1 items-center justify-center bg-transparent p-6">
+      <section className="w-full max-w-2xl space-y-5 rounded-[28px] border border-black/8 bg-white/80 p-6 shadow-[0_18px_60px_rgba(31,41,55,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/5 sm:p-8">
         <header className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             {CLOSED_BETA_LABEL}
           </p>
           <h1 className="text-2xl font-semibold">{PRODUCT_NAME} Dashboard</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Read-only control panel for tenant status, runtime routing health, and closed beta readiness.
+            A calm view of tenant status, runtime health, and the next action worth taking.
           </p>
         </header>
 
-        <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-100">
+        <div className="rounded-2xl border border-[rgba(200,182,226,0.45)] bg-[rgba(242,228,216,0.45)] p-4 text-sm text-slate-800 shadow-[0_12px_32px_rgba(168,133,208,0.08)] dark:border-[rgba(200,182,226,0.25)] dark:bg-[rgba(200,182,226,0.08)] dark:text-slate-100">
           <p className="font-medium">{formatClosedBetaSummary()}</p>
-          <p className="mt-2 text-xs text-emerald-900/80 dark:text-emerald-100/80">
-            Keep draft mode on until listing sync, Telegram routing, and runtime counters look healthy.
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+            Keep draft mode on until listing sync and runtime counters look calm.
           </p>
         </div>
 
-        <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+        <div className="rounded-2xl bg-[rgba(255,255,255,0.55)] px-3 py-2 text-xs text-zinc-700 dark:bg-white/5 dark:text-zinc-300">
           Signed in as: {user.email ?? "Unknown user"}
         </div>
 
-        <div className="rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
+        <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.55)] p-4 text-sm dark:border-white/10 dark:bg-white/5">
           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Connected Hostify account
           </p>
@@ -118,10 +117,10 @@ export default async function DashboardPage() {
         </div>
 
         <div
-          className={`rounded-md border p-4 text-sm ${
+          className={`rounded-2xl border p-4 text-sm ${
             runtimeHealthy
-              ? "border-emerald-200 bg-emerald-50/80 text-emerald-950 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-100"
-              : "border-amber-300/40 bg-amber-50/80 text-amber-950 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100"
+              ? "border-[rgba(191,220,210,0.55)] bg-[rgba(191,220,210,0.28)] text-slate-900 dark:border-[rgba(191,220,210,0.24)] dark:bg-[rgba(191,220,210,0.1)] dark:text-slate-100"
+              : "border-[rgba(242,228,216,0.85)] bg-[rgba(242,228,216,0.52)] text-slate-900 dark:border-[rgba(242,228,216,0.22)] dark:bg-[rgba(242,228,216,0.08)] dark:text-slate-100"
           }`}
         >
           <p className="font-medium">
@@ -147,7 +146,7 @@ export default async function DashboardPage() {
           <Stat title="AI replies" value={String(metrics.aiReplies)} />
         </div>
 
-        <div className="rounded-md border border-black/10 p-4 dark:border-white/15">
+        <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.55)] p-4 dark:border-white/10 dark:bg-white/5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               Runtime resolution path
@@ -179,7 +178,7 @@ export default async function DashboardPage() {
           <Stat title="Hours saved (est.)" value={economics.estimatedHoursSaved.toFixed(2)} />
         </div>
 
-        <div className="rounded-md border border-black/10 p-4 dark:border-white/15">
+        <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.55)] p-4 dark:border-white/10 dark:bg-white/5">
           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Economic assumptions
           </p>
@@ -195,7 +194,7 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-md border border-black/10 p-4 dark:border-white/15">
+        <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.55)] p-4 dark:border-white/10 dark:bg-white/5">
           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Listing economics (MVP)
           </p>
@@ -229,15 +228,14 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+        <div className="rounded-2xl bg-[rgba(255,255,255,0.55)] px-3 py-2 text-xs text-zinc-700 dark:bg-white/5 dark:text-zinc-300">
           Hostify key: {maskedKey ?? "Not set"}
         </div>
 
-        <div className="rounded-md border border-black/10 p-4 text-xs text-zinc-600 dark:border-white/15 dark:text-zinc-400">
+        <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.55)] p-4 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
           <p>Last settings update: {formatDate(tenant.updated_at)}</p>
           <p className="mt-2">
-            Suggested tester flow: keep draft mode on, send a few controlled messages, verify runtime counters,
-            then decide whether autopilot is safe for this tenant.
+            Jenny can guide you further from here, so this page can stay focused on the current state.
           </p>
         </div>
 
@@ -254,7 +252,6 @@ export default async function DashboardPage() {
           >
             Back to overview
           </Link>
-          <AssistantLauncher label="Ask Jenny" />
         </div>
       </section>
     </main>
@@ -263,7 +260,7 @@ export default async function DashboardPage() {
 
 function Stat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+    <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.48)] p-4 dark:border-white/10 dark:bg-white/5">
       <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{title}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>

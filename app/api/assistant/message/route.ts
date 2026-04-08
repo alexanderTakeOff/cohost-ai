@@ -26,6 +26,10 @@ export async function POST(request: Request) {
       message: typeof body.message === "string" ? body.message : "",
       authenticated: Boolean(user),
       tenant: {
+        hasTenant: Boolean(tenant),
+        hasHostifyBinding: Boolean(tenant?.hostify_customer_id),
+        hasHostifyKey: Boolean(tenant?.hostify_api_key_encrypted),
+        hostifyCustomerId: tenant?.hostify_customer_id ?? null,
         telegramChatId: tenant?.telegram_chat_id ?? null,
       },
     };

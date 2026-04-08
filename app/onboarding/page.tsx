@@ -14,7 +14,6 @@ import {
   getMaskedHostifyKey,
   getTenantForCurrentUser,
 } from "@/lib/tenant/server";
-import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 
 import { OnboardingForm } from "./onboarding-form";
 
@@ -55,16 +54,15 @@ export default async function OnboardingPage({
   const maskedKey = getMaskedHostifyKey(tenant);
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
-      <section className="w-full max-w-5xl space-y-6 rounded-lg border border-black/10 bg-white p-8 shadow-sm dark:border-white/15 dark:bg-black">
+    <main className="flex flex-1 items-center justify-center bg-transparent p-6">
+      <section className="w-full max-w-5xl space-y-5 rounded-[28px] border border-black/8 bg-white/80 p-6 shadow-[0_18px_60px_rgba(31,41,55,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/5 sm:p-8">
         <header className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             {CLOSED_BETA_LABEL}
           </p>
           <h1 className="text-2xl font-semibold">{PRODUCT_NAME} onboarding</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Configure account access, listings, assistant behavior, and economics without making the
-            onboarding table a runtime dependency.
+            Jenny can guide the setup. This page stays focused on your actual account and listing state.
           </p>
         </header>
 
@@ -72,31 +70,22 @@ export default async function OnboardingPage({
           Signed in as: {user.email ?? "Unknown user"}
         </div>
 
-        <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-100">
+        <div className="rounded-2xl border border-[rgba(200,182,226,0.45)] bg-[rgba(242,228,216,0.45)] p-4 text-sm text-slate-800 shadow-[0_12px_32px_rgba(168,133,208,0.08)] dark:border-[rgba(200,182,226,0.25)] dark:bg-[rgba(200,182,226,0.08)] dark:text-slate-100">
           <p className="font-medium">{formatClosedBetaSummary()}</p>
-          <p className="mt-2 text-xs text-emerald-900/80 dark:text-emerald-100/80">
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
             During beta, each client can keep up to {CLOSED_BETA_MAX_ACTIVE_LISTINGS} active
-            listings enabled in the control plane. Existing live routing stays runtime-first.
+            listings in the control plane.
           </p>
         </div>
 
-        <div className="rounded-md border border-black/10 p-4 text-sm text-zinc-700 dark:border-white/15 dark:text-zinc-300">
-          <p className="font-medium">Recommended setup order</p>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-zinc-600 dark:text-zinc-400">
-            <li>Save account settings with your Hostify key, Telegram chat ID, and draft mode.</li>
-            <li>Refresh listings and confirm the webhook listing IDs you expect to receive.</li>
-            <li>Only switch to autopilot after you confirm message flow on the dashboard.</li>
-          </ol>
-        </div>
-
         {maskedKey ? (
-          <p className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          <p className="rounded-2xl bg-[rgba(255,255,255,0.55)] px-3 py-2 text-xs text-zinc-700 dark:bg-white/5 dark:text-zinc-300">
             Existing Hostify key: {maskedKey}
           </p>
         ) : null}
 
         {tenant?.hostify_customer_id ? (
-          <div className="rounded-md border border-black/10 p-4 text-sm text-zinc-700 dark:border-white/15 dark:text-zinc-300">
+          <div className="rounded-2xl border border-black/8 bg-[rgba(255,255,255,0.55)] p-4 text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
             <p className="font-medium">Connected Hostify account</p>
             <div className="mt-2 space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
               <p>
@@ -116,10 +105,6 @@ export default async function OnboardingPage({
             sync will remain disabled.
           </p>
         ) : null}
-
-        <div className="flex justify-end">
-          <AssistantLauncher label="Ask Jenny" />
-        </div>
       </section>
     </main>
   );

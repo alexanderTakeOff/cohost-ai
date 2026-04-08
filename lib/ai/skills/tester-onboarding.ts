@@ -389,12 +389,11 @@ function buildPostDecisionCards(context: AssistantConversationContext, tenant?: 
 
   if (context.state === "account_setup") {
     return [
-      decisionCard("accepted"),
       {
         type: "account_setup",
         title: "Account setup in chat",
         description:
-          "Paste your Hostify API key, confirm your Telegram chat, and choose a mode. Jenny will save the account settings without leaving the conversation.",
+          "Add only the essentials here. Jenny will save them without leaving the conversation.",
         defaults: {
           telegramChatId: tenant?.telegramChatId ?? "",
           mode: "draft",
@@ -405,7 +404,6 @@ function buildPostDecisionCards(context: AssistantConversationContext, tenant?: 
 
   if (context.state === "completed") {
     return [
-      decisionCard("accepted"),
       navigationCard([
         { id: "open-dashboard", label: "Open dashboard", route: "/dashboard" },
         { id: "open-account", label: "Open onboarding account", route: "/onboarding?tab=account" },
@@ -573,12 +571,20 @@ export async function runTesterOnboardingSkill(
     context.decision = evaluateDecision(context);
 
     if (context.decision === "accepted") {
-      context.state = context.authenticated ? "account_setup" : "auth";
+      if (context.authenticated && input.tenant?.hasTenant && input.tenant?.hasHostifyBinding) {
+        context.state = "completed";
+      } else if (context.authenticated) {
+        context.state = "account_setup";
+      } else {
+        context.state = "auth";
+      }
       return {
         context,
         assistantText: await renderAssistantCopy(
-          context.authenticated
-            ? "You look like a strong fit. Let’s move directly into account setup here in chat."
+          context.state === "completed"
+            ? "You look like a strong fit, and your account already seems connected. I can take you straight to the useful parts."
+            : context.authenticated
+            ? "You look like a strong fit. Let’s finish the essentials here in chat."
             : "You look like a strong fit for the closed beta. The next step is to create or use your Cohost AI account right here in the chat.",
           normalized,
         ),
@@ -615,10 +621,15 @@ export async function runTesterOnboardingSkill(
     }
 
     context.state = "account_setup";
+    if (input.tenant?.hasTenant && input.tenant?.hasHostifyBinding) {
+      context.state = "completed";
+    }
     return {
       context,
       assistantText: await renderAssistantCopy(
-        "Perfect, you’re signed in. I’m opening the account setup card now.",
+        context.state === "completed"
+          ? "Perfect — you’re signed in and already have the basics connected. I’ll open the most useful next step."
+          : "Perfect — you’re signed in. I’m opening the account setup card now so you can finish the essentials.",
         normalized,
       ),
       cards: buildPostDecisionCards(context, input.tenant),
@@ -643,7 +654,7 @@ export async function runTesterOnboardingSkill(
     return {
       context,
       assistantText: await renderAssistantCopy(
-        "Use the account setup card below. Once it is saved, I’ll open the next step.",
+        "Use the compact setup card below. Once it is saved, I’ll move you forward.",
         normalized,
       ),
       cards: buildPostDecisionCards(context, input.tenant),
@@ -655,7 +666,7 @@ export async function runTesterOnboardingSkill(
     return {
       context,
       assistantText: await renderAssistantCopy(
-        "I can open your dashboard or any onboarding tab. Tell me where you want to go, or use the buttons below.",
+        "You’re ready. Ask me to open dashboard, listings, account settings, or assistant settings.",
         normalized,
       ),
       cards: buildPostDecisionCards(context, input.tenant),
