@@ -9,6 +9,7 @@ import {
 } from "@/lib/product/beta";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import {
   getListingEconomicsForCurrentUser,
   getMaskedHostifyKey,
@@ -253,6 +254,7 @@ export default async function DashboardPage() {
           >
             Back to overview
           </Link>
+          <AssistantLauncher label="Ask Jenny" />
         </div>
       </section>
     </main>

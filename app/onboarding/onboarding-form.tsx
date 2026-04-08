@@ -24,6 +24,16 @@ const initialState: FormState = {
 
 type OnboardingTab = "account" | "listings" | "assistant" | "economics";
 
+function normalizeInitialTab(value: string | undefined, tenantExists: boolean): OnboardingTab {
+  if (value === "account" || value === "listings" || value === "assistant" || value === "economics") {
+    if (!tenantExists && value === "listings") {
+      return "account";
+    }
+    return value;
+  }
+  return tenantExists ? "listings" : "account";
+}
+
 function TabButton({
   active,
   onClick,
@@ -51,9 +61,11 @@ function TabButton({
 export function OnboardingForm({
   tenant,
   listings,
+  initialTab,
 }: {
   tenant: TenantRecord | null;
   listings: HostAccountListingRecord[];
+  initialTab?: string;
 }) {
   const router = useRouter();
   const [state, action, isPending] = useActionState(saveOnboarding, initialState);
@@ -63,7 +75,9 @@ export function OnboardingForm({
     saveEconomicAssumptions,
     initialState,
   );
-  const [activeTab, setActiveTab] = useState<OnboardingTab>(tenant ? "listings" : "account");
+  const [activeTab, setActiveTab] = useState<OnboardingTab>(
+    normalizeInitialTab(initialTab, Boolean(tenant)),
+  );
   const hostifyRequired = !tenant?.hostify_api_key_encrypted;
   const activeListingsCount = listings.filter((listing) => listing.active).length;
 
@@ -72,6 +86,10 @@ export function OnboardingForm({
       router.refresh();
     }
   }, [router, state.success, refreshState.success, toggleState.success, economicsState.success]);
+
+  useEffect(() => {
+    setActiveTab(normalizeInitialTab(initialTab, Boolean(tenant)));
+  }, [initialTab, tenant]);
 
   return (
     <div className="space-y-6">

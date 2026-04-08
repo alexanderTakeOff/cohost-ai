@@ -28,12 +28,16 @@ Then fill in:
 - `HOSTIFY_KEY_ENCRYPTION_SECRET`
 - `N8N_WEBHOOK_URL`
 - `N8N_WEBHOOK_SECRET`
+- `AI_PROVIDER`
+- `AI_MODEL`
+- `OPENAI_API_KEY`
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 Auth and MVP pages:
 
 - `/login` - sign in or request access to the closed beta
+- `/chat` - conversation-first onboarding and product guide with Jenny
 - `/onboarding` - connect Hostify, Telegram, listings, assistant settings, and economics
 - `/dashboard` - read-only status, runtime routing counters, and economics visibility
 - `/` - product overview and recommended next steps after sign-in

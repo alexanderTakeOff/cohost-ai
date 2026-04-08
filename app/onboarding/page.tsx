@@ -14,10 +14,15 @@ import {
   getMaskedHostifyKey,
   getTenantForCurrentUser,
 } from "@/lib/tenant/server";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 
 import { OnboardingForm } from "./onboarding-form";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   if (!hasSupabaseEnv()) {
     return (
       <main className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
@@ -38,6 +43,11 @@ export default async function OnboardingPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialTabValue = Array.isArray(resolvedSearchParams?.tab)
+    ? resolvedSearchParams?.tab[0]
+    : resolvedSearchParams?.tab;
 
   const tenant = await getTenantForCurrentUser();
   const listings = await getHostAccountListingsForCurrentUser();
@@ -98,7 +108,7 @@ export default async function OnboardingPage() {
           </div>
         ) : null}
 
-        <OnboardingForm tenant={tenant} listings={listings} />
+        <OnboardingForm tenant={tenant} listings={listings} initialTab={initialTabValue} />
 
         {!hasN8nEnv() ? (
           <p className="text-xs text-amber-700 dark:text-amber-300">
@@ -106,6 +116,10 @@ export default async function OnboardingPage() {
             sync will remain disabled.
           </p>
         ) : null}
+
+        <div className="flex justify-end">
+          <AssistantLauncher label="Ask Jenny" />
+        </div>
       </section>
     </main>
   );

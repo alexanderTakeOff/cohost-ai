@@ -19,6 +19,29 @@ Track every production-facing n8n change with enough detail to audit and roll ba
 
 - Date (UTC): 2026-04-06
 - Operator: Cursor
+- Workflow: App conversational onboarding shell (no direct n8n node edits)
+- Node(s): n/a
+- Change summary:
+  - Added app-side AI conversation shell with reusable Jenny drawer and standalone `/chat` entrypoint.
+  - Introduced skill-based AI runtime foundation under `lib/ai/*` with the first `tester-onboarding` skill, stateful conversation context, deterministic scoring, and navigation intents.
+  - Added chat-side auth card and account-setup card so users can continue the onboarding corridor inside the conversation UI.
+  - Added backend routes for assistant turns and account setup from chat:
+    - `POST /api/assistant/message`
+    - `POST /api/assistant/onboarding/account`
+  - Added AI env contract for Vercel/backend runtime:
+    - `AI_PROVIDER`
+    - `AI_MODEL`
+    - `OPENAI_API_KEY`
+- Reason:
+  - Establish a conversation-first product shell for tester onboarding and future skill composition without collapsing everything into one giant prompt or relying on freeform UI navigation.
+- Verification:
+  - `npm run lint`
+  - `npm run build`
+- Rollback reference:
+  - Revert this app/docs chunk to restore the prior page-first onboarding flow without Jenny conversational shell.
+
+- Date (UTC): 2026-04-06
+- Operator: Cursor
 - Workflow: App tenant binding hardening (Chunk A, no direct n8n node edits)
 - Node(s): n/a
 - Change summary:

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOut } from "./actions";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import { CLOSED_BETA_LABEL, formatClosedBetaSummary, PRODUCT_NAME } from "@/lib/product/beta";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -57,6 +58,12 @@ export default async function Home() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
+                href="/chat"
+                className="inline-flex rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white dark:bg-emerald-500 dark:text-black"
+              >
+                Chat with Jenny
+              </Link>
+              <Link
                 href="/onboarding"
                 className="inline-flex rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
               >
@@ -89,14 +96,15 @@ export default async function Home() {
               Sign in to continue onboarding, verify listings, and monitor runtime health.
             </p>
             <Link
-              href="/login"
+              href="/chat"
               className="inline-flex rounded-md bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
             >
-              Open login
+              Open Jenny
             </Link>
           </div>
         )}
       </section>
+      <AssistantLauncher />
     </main>
   );
 }
