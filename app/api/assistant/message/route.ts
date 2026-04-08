@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { runAssistantTurn } from "@/lib/ai/runtime";
 import { createClient } from "@/lib/supabase/server";
-import { getTenantForCurrentUser } from "@/lib/tenant/server";
+import { getAssistantContextForCurrentUser, getTenantForCurrentUser } from "@/lib/tenant/server";
 import type {
   AssistantConversationContext,
   AssistantUserMessageRequest,
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
     const tenant = user ? await getTenantForCurrentUser() : null;
+    const assistantContext = user ? await getAssistantContextForCurrentUser() : null;
 
     const input: AssistantUserMessageRequest = {
       context: body.context ?? null,
@@ -32,6 +33,24 @@ export async function POST(request: Request) {
         hostifyCustomerId: tenant?.hostify_customer_id ?? null,
         telegramChatId: tenant?.telegram_chat_id ?? null,
       },
+      assistantContext: assistantContext
+        ? {
+            userEmail: assistantContext.user.email,
+            tenantId: assistantContext.tenant?.id ?? null,
+            hostifyCustomerId: assistantContext.tenant?.hostifyCustomerId ?? null,
+            hostifyCustomerName: assistantContext.tenant?.hostifyCustomerName ?? null,
+            hostifyIntegration: assistantContext.tenant?.hostifyIntegration ?? null,
+            hasHostifyKey: assistantContext.tenant?.hasHostifyKey ?? false,
+            hasGlobalInstructions: assistantContext.tenant?.hasGlobalInstructions ?? false,
+            activeListings: assistantContext.listings.active,
+            totalListings: assistantContext.listings.total,
+            runtimeUnresolved:
+              typeof assistantContext.runtime?.unresolved === "number"
+                ? assistantContext.runtime.unresolved
+                : undefined,
+            mode: assistantContext.tenant?.mode ?? null,
+          }
+        : null,
     };
 
     const response = await runAssistantTurn(input);

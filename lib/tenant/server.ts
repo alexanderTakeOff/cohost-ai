@@ -10,6 +10,7 @@ import type {
   AiCostEstimation,
   HostAccountListingAliasType,
   ListingEconomicsRow,
+  TenantAssistantContext,
   TenantEconomicsMetrics,
   HostAccountListingRecord,
   TenantMetrics,
@@ -296,6 +297,66 @@ export async function getTenantForCurrentUser() {
   }
 
   return data ?? null;
+}
+
+export async function getAssistantContextForCurrentUser(): Promise<TenantAssistantContext> {
+  const tenant = await getTenantForCurrentUser();
+  const userId = await getCurrentUserId();
+  const supabase = await createClient();
+
+  let userEmail: string | null = null;
+  if (userId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userEmail = user?.email ?? null;
+  }
+
+  if (!tenant) {
+    return {
+      user: { email: userEmail },
+      tenant: null,
+      listings: {
+        total: 0,
+        active: 0,
+        sample: [],
+      },
+      runtime: null,
+    };
+  }
+
+  const listings = await getHostAccountListingsForCurrentUser();
+  const metrics = await getTenantMetrics(tenant.id);
+
+  return {
+    user: { email: userEmail },
+    tenant: {
+      id: tenant.id,
+      hostifyCustomerId: tenant.hostify_customer_id ?? null,
+      hostifyCustomerName: tenant.hostify_customer_name ?? null,
+      hostifyIntegration: tenant.hostify_integration_nickname ?? tenant.hostify_integration_id ?? null,
+      telegramChatId: tenant.telegram_chat_id ?? null,
+      mode: tenant.mode,
+      hasHostifyKey: Boolean(tenant.hostify_api_key_encrypted),
+      hasGlobalInstructions: Boolean(tenant.global_instructions?.trim()),
+    },
+    listings: {
+      total: listings.length,
+      active: listings.filter((listing) => listing.active).length,
+      sample: listings.slice(0, 8).map((listing) => ({
+        listingId: listing.listing_id,
+        listingName: listing.listing_name,
+        active: listing.active,
+      })),
+    },
+    runtime: {
+      unresolved: metrics.runtimeResolution.unresolved,
+      directMapping: metrics.runtimeResolution.directMapping,
+      aliasMapping: metrics.runtimeResolution.aliasMapping,
+      detailsFallback: metrics.runtimeResolution.detailsFallback,
+      lastRuntimeIssueAt: metrics.lastRuntimeIssueAt,
+    },
+  };
 }
 
 export async function upsertTenantForCurrentUser(input: OnboardingInput) {

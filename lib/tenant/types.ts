@@ -36,6 +36,38 @@ export type TenantMetrics = {
   lastRuntimeIssueAt: string | null;
 };
 
+export type TenantAssistantContext = {
+  user: {
+    email: string | null;
+  };
+  tenant: {
+    id: string;
+    hostifyCustomerId: string | null;
+    hostifyCustomerName: string | null;
+    hostifyIntegration: string | null;
+    telegramChatId: string | null;
+    mode: TenantMode;
+    hasHostifyKey: boolean;
+    hasGlobalInstructions: boolean;
+  } | null;
+  listings: {
+    total: number;
+    active: number;
+    sample: Array<{
+      listingId: string;
+      listingName: string | null;
+      active: boolean;
+    }>;
+  };
+  runtime: {
+    unresolved: number;
+    directMapping: number;
+    aliasMapping: number;
+    detailsFallback: number;
+    lastRuntimeIssueAt: string | null;
+  } | null;
+};
+
 export type TenantEconomicsMetrics = {
   guestMessages: number;
   aiReplies: number;

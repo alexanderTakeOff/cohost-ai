@@ -39,6 +39,7 @@ export type AssistantConversationContext = {
   decision: TesterOnboardingDecision | null;
   authenticated: boolean;
   onboardingAccountSaved: boolean;
+  sessionDisplayName?: string | null;
 };
 
 export type QuickReply = {
@@ -102,5 +103,18 @@ export type AssistantUserMessageRequest = {
     hasHostifyKey?: boolean;
     hostifyCustomerId?: string | null;
     telegramChatId?: string | null;
+  } | null;
+  assistantContext?: {
+    userEmail?: string | null;
+    tenantId?: string | null;
+    hostifyCustomerId?: string | null;
+    hostifyCustomerName?: string | null;
+    hostifyIntegration?: string | null;
+    hasHostifyKey?: boolean;
+    hasGlobalInstructions?: boolean;
+    activeListings?: number;
+    totalListings?: number;
+    runtimeUnresolved?: number;
+    mode?: "draft" | "autopilot" | null;
   } | null;
 };

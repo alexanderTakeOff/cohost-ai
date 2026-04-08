@@ -42,6 +42,31 @@ export function createInitialAssistantContext(
   };
 }
 
+function inferSessionDisplayName(input: AssistantUserMessageRequest) {
+  const fromContext = input.context?.sessionDisplayName?.trim();
+  if (fromContext) {
+    return fromContext;
+  }
+
+  const email = input.assistantContext?.userEmail?.trim();
+  if (!email) {
+    return null;
+  }
+
+  const local = email.split("@")[0]?.trim();
+  if (!local) {
+    return null;
+  }
+
+  const candidate = local
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+  return candidate || null;
+}
+
 function scoreListings(value: TesterListingsBucket | null | undefined) {
   switch (value) {
     case "6-10":
@@ -432,12 +457,15 @@ export async function runTesterOnboardingSkill(
 ): Promise<AssistantTurnResponse> {
   const context = cloneContext(input.context ?? createInitialAssistantContext(input.authenticated));
   context.authenticated = input.authenticated;
+  context.sessionDisplayName = inferSessionDisplayName(input);
 
   const normalized = input.message.trim();
   if (!normalized) {
     const cards = getPromptCards(context);
     const assistantText = await renderAssistantCopy(
-      "Hi, I’m Jenny. I can qualify your fit for the private beta, then move you into account setup and onboarding without switching context.",
+      input.authenticated
+        ? `Hi${context.sessionDisplayName ? `, ${context.sessionDisplayName}` : ""}. I can see this account is already signed in, so I’ll guide you using the data already available for this session.`
+        : "Hi, I’m Jenny. I can qualify your fit for the private beta, then move you into account setup and onboarding without switching context.",
     );
     return {
       context,
@@ -582,7 +610,7 @@ export async function runTesterOnboardingSkill(
         context,
         assistantText: await renderAssistantCopy(
           context.state === "completed"
-            ? "You look like a strong fit, and your account already seems connected. I can take you straight to the useful parts."
+            ? "You look like a strong fit, and your account already seems connected. I can take you straight to the useful parts instead of replaying setup."
             : context.authenticated
             ? "You look like a strong fit. Let’s finish the essentials here in chat."
             : "You look like a strong fit for the closed beta. The next step is to create or use your Cohost AI account right here in the chat.",
@@ -628,7 +656,7 @@ export async function runTesterOnboardingSkill(
       context,
       assistantText: await renderAssistantCopy(
         context.state === "completed"
-          ? "Perfect — you’re signed in and already have the basics connected. I’ll open the most useful next step."
+          ? "Perfect — you’re signed in and already have the basics connected. I’ll take you to the useful parts instead of asking you to repeat setup."
           : "Perfect — you’re signed in. I’m opening the account setup card now so you can finish the essentials.",
         normalized,
       ),
@@ -638,6 +666,19 @@ export async function runTesterOnboardingSkill(
   }
 
   if (context.state === "account_setup") {
+    if (input.tenant?.hasTenant && input.tenant?.hasHostifyBinding && input.tenant?.hasHostifyKey) {
+      context.state = "completed";
+      return {
+        context,
+        assistantText: await renderAssistantCopy(
+          "I can already see that your account is connected, so I won’t ask you to re-enter the same setup. I can open the dashboard or any onboarding section you want.",
+          normalized,
+        ),
+        cards: buildPostDecisionCards(context, input.tenant),
+        openRoute: null,
+      };
+    }
+
     if (context.onboardingAccountSaved) {
       context.state = "completed";
       return {
@@ -666,7 +707,9 @@ export async function runTesterOnboardingSkill(
     return {
       context,
       assistantText: await renderAssistantCopy(
-        "You’re ready. Ask me to open dashboard, listings, account settings, or assistant settings.",
+        input.assistantContext?.hostifyCustomerId
+          ? `You’re ready. I can see Hostify account ${input.assistantContext.hostifyCustomerId} is connected for this session. Ask me to open dashboard, listings, account settings, or assistant settings.`
+          : "You’re ready. Ask me to open dashboard, listings, account settings, or assistant settings.",
         normalized,
       ),
       cards: buildPostDecisionCards(context, input.tenant),
