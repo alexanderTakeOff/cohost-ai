@@ -55,6 +55,41 @@ type RuntimeResolverContext = {
   hostifyAccountRef?: string | null;
 };
 
+type HostifyAccountBinding = {
+  customerId: string;
+  customerName: string | null;
+  integrationId: string | null;
+  integrationNickname: string | null;
+};
+
+type RuntimeAmbiguityReason =
+  | "listing_multiple_tenants"
+  | "alias_multiple_tenants"
+  | "account_ref_multiple_tenants";
+
+export class RuntimeConfigAmbiguousError extends Error {
+  readonly listingId: string;
+  readonly hostifyAccountRef: string | null;
+  readonly tenantIds: string[];
+  readonly reason: RuntimeAmbiguityReason;
+
+  constructor(input: {
+    listingId: string;
+    hostifyAccountRef?: string | null;
+    tenantIds: string[];
+    reason: RuntimeAmbiguityReason;
+  }) {
+    super(
+      `Ambiguous runtime configuration for listing ${input.listingId}: multiple active tenants matched.`,
+    );
+    this.name = "RuntimeConfigAmbiguousError";
+    this.listingId = input.listingId;
+    this.hostifyAccountRef = input.hostifyAccountRef?.trim() || null;
+    this.tenantIds = [...new Set(input.tenantIds)];
+    this.reason = input.reason;
+  }
+}
+
 type HostifyListingsResponseEnvelope = {
   listings?: unknown;
   data?: unknown;
@@ -453,19 +488,75 @@ async function fetchHostifyAccountBinding(hostifyApiKey: string) {
     customerName: details.customerName,
     integrationId: details.integrationId,
     integrationNickname: details.integrationNickname,
-  };
+  } satisfies HostifyAccountBinding;
 }
 
-export async function syncTenantHostifyBindingForCurrentUser(hostifyApiKey: string) {
+export async function resolveHostifyAccountBinding(hostifyApiKey: string): Promise<HostifyAccountBinding> {
+  const binding = await fetchHostifyAccountBinding(hostifyApiKey);
+  if (!binding?.customerId) {
+    throw new Error("Unable to determine Hostify account from the provided API key.");
+  }
+  return binding;
+}
+
+async function assertHostifyCustomerOwnershipForCurrentUser(customerId: string) {
   const userId = await getCurrentUserId();
   if (!userId) {
     throw new Error("You must be logged in.");
   }
 
-  const binding = await fetchHostifyAccountBinding(hostifyApiKey);
-  if (!binding?.customerId) {
-    throw new Error("Unable to determine Hostify account from the provided API key.");
+  const supabase = createAdminClient();
+  const claimAttempt = await supabase
+    .from("tenants")
+    .select("id,user_id,hostify_customer_id,is_active")
+    .eq("hostify_customer_id", customerId)
+    .eq("is_active", true)
+    .limit(10);
+
+  if (claimAttempt.error) {
+    if (isMissingColumnError(claimAttempt.error, "hostify_customer_id")) {
+      return;
+    }
+    throw new Error(claimAttempt.error.message);
   }
+
+  const claimedByOtherActiveTenant = (claimAttempt.data ?? []).some((row) => {
+    const ownerUserId = toStringOrNull((row as Record<string, unknown>).user_id);
+    return ownerUserId && ownerUserId !== userId;
+  });
+  if (claimedByOtherActiveTenant) {
+    throw new Error(
+      `Hostify account ${customerId} is already claimed by another active tenant. Use that existing tenant owner account or transfer ownership before reconnecting.`,
+    );
+  }
+}
+
+export async function validateHostifyOwnershipForCurrentUser(hostifyApiKey: string) {
+  const binding = await resolveHostifyAccountBinding(hostifyApiKey);
+  await assertHostifyCustomerOwnershipForCurrentUser(binding.customerId);
+  const existingTenant = await getTenantForCurrentUser();
+  const existingCustomerId = existingTenant?.hostify_customer_id?.trim() ?? null;
+  if (existingCustomerId && existingCustomerId !== binding.customerId) {
+    throw new Error(
+      `This tenant is already linked to Hostify account ${existingCustomerId}. Create a separate tenant for Hostify account ${binding.customerId} instead of replacing the existing binding.`,
+    );
+  }
+  return binding;
+}
+
+export async function syncTenantHostifyBindingForCurrentUser(
+  hostifyApiKey: string,
+  options?: {
+    binding?: HostifyAccountBinding;
+  },
+) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("You must be logged in.");
+  }
+
+  const binding = options?.binding ?? (await validateHostifyOwnershipForCurrentUser(hostifyApiKey));
+  await assertHostifyCustomerOwnershipForCurrentUser(binding.customerId);
 
   const supabase = await createClient();
   const { data: existingTenant, error: existingTenantError } = await supabase
@@ -1125,6 +1216,7 @@ async function findCanonicalListingByAlias(input: {
 
   if (!aliasAttempt.error && (aliasAttempt.data ?? []).length > 0) {
     const candidates = aliasAttempt.data ?? [];
+    const matchedMappings: HostAccountListingRecord[] = [];
     for (const row of candidates) {
       const canonicalListingId = toStringOrNull(row.canonical_listing_id);
       const tenantId = toStringOrNull(row.tenant_id);
@@ -1148,7 +1240,18 @@ async function findCanonicalListingByAlias(input: {
       if (input.accountId && mapping.account_id && mapping.account_id !== input.accountId) {
         continue;
       }
-      return mapping;
+      matchedMappings.push(mapping);
+    }
+    const distinctTenants = [...new Set(matchedMappings.map((mapping) => mapping.tenant_id))];
+    if (distinctTenants.length > 1) {
+      throw new RuntimeConfigAmbiguousError({
+        listingId,
+        tenantIds: distinctTenants,
+        reason: "alias_multiple_tenants",
+      });
+    }
+    if (matchedMappings[0]) {
+      return matchedMappings[0];
     }
   }
 
@@ -1171,12 +1274,24 @@ async function findCanonicalListingByAlias(input: {
   }
 
   const rows = (fallbackAttempt.data ?? []) as Record<string, unknown>[];
+  const fallbackCandidates: HostAccountListingRecord[] = [];
   for (const row of rows) {
     const mapping = normalizeListingRow(row);
     if (input.accountId && mapping.account_id && mapping.account_id !== input.accountId) {
       continue;
     }
-    return mapping;
+    fallbackCandidates.push(mapping);
+  }
+  const distinctTenants = [...new Set(fallbackCandidates.map((mapping) => mapping.tenant_id))];
+  if (distinctTenants.length > 1) {
+    throw new RuntimeConfigAmbiguousError({
+      listingId,
+      tenantIds: distinctTenants,
+      reason: "alias_multiple_tenants",
+    });
+  }
+  if (fallbackCandidates[0]) {
+    return fallbackCandidates[0];
   }
   return null;
 }
@@ -1521,16 +1636,27 @@ export async function syncHostAccountListingsFromHostify(
 export async function resolveRuntimeConfigByListing(listingId: string) {
   const supabase = createAdminClient();
   const normalizedListingId = listingId.trim();
-  const { data: mapping, error: mappingError } = await supabase
+  const { data: directMappings, error: mappingError } = await supabase
     .from("host_account_listings")
     .select("*")
     .eq("listing_id", normalizedListingId)
     .eq("active", true)
-    .maybeSingle<HostAccountListingRecord>();
+    .limit(20)
+    .returns<HostAccountListingRecord[]>();
 
   if (mappingError) {
     throw new Error(mappingError.message);
   }
+
+  const directDistinctTenants = [...new Set((directMappings ?? []).map((mapping) => mapping.tenant_id))];
+  if (directDistinctTenants.length > 1) {
+    throw new RuntimeConfigAmbiguousError({
+      listingId: normalizedListingId,
+      tenantIds: directDistinctTenants,
+      reason: "listing_multiple_tenants",
+    });
+  }
+  const mapping = (directMappings ?? [])[0] ?? null;
 
   const resolvedMapping =
     mapping ?? (await findCanonicalListingByAlias({ listingId: normalizedListingId }));
@@ -1572,7 +1698,10 @@ function extractHostifyAccountRefFromTopicArn(topicArn: string | null | undefine
   return match?.[1] ?? null;
 }
 
-export async function getTenantByHostifyAccountRef(accountRef: string): Promise<TenantRecord | null> {
+export async function getTenantByHostifyAccountRef(
+  accountRef: string,
+  options?: { listingId?: string | null },
+): Promise<TenantRecord | null> {
   const supabase = createAdminClient();
   const mappingAttempt = await supabase
     .from("host_account_listings")
@@ -1599,6 +1728,7 @@ export async function getTenantByHostifyAccountRef(accountRef: string): Promise<
     if (legacyAttempt.error) {
       throw new Error(legacyAttempt.error.message);
     }
+    const matchedTenants: TenantRecord[] = [];
     for (const row of legacyAttempt.data ?? []) {
       const tenantId = toStringOrNull((row as Record<string, unknown>).tenant_id);
       if (!tenantId) {
@@ -1613,12 +1743,22 @@ export async function getTenantByHostifyAccountRef(accountRef: string): Promise<
         throw new Error(tenantAttempt.error.message);
       }
       if (tenantAttempt.data?.is_active) {
-        return tenantAttempt.data;
+        matchedTenants.push(tenantAttempt.data);
       }
     }
-    return null;
+    const distinctTenantIds = [...new Set(matchedTenants.map((tenant) => tenant.id))];
+    if (distinctTenantIds.length > 1) {
+      throw new RuntimeConfigAmbiguousError({
+        listingId: options?.listingId?.trim() ?? "",
+        hostifyAccountRef: accountRef,
+        tenantIds: distinctTenantIds,
+        reason: "account_ref_multiple_tenants",
+      });
+    }
+    return matchedTenants[0] ?? null;
   }
 
+  const matchedTenants: TenantRecord[] = [];
   for (const row of (mappingAttempt.data ?? []) as Record<string, unknown>[]) {
     const tenantId = toStringOrNull(row.tenant_id);
     if (!tenantId) {
@@ -1633,14 +1773,26 @@ export async function getTenantByHostifyAccountRef(accountRef: string): Promise<
       throw new Error(tenantAttempt.error.message);
     }
     if (tenantAttempt.data?.is_active) {
-      return tenantAttempt.data;
+      matchedTenants.push(tenantAttempt.data);
     }
   }
-  return null;
+  const distinctTenantIds = [...new Set(matchedTenants.map((tenant) => tenant.id))];
+  if (distinctTenantIds.length > 1) {
+    throw new RuntimeConfigAmbiguousError({
+      listingId: options?.listingId?.trim() ?? "",
+      hostifyAccountRef: accountRef,
+      tenantIds: distinctTenantIds,
+      reason: "account_ref_multiple_tenants",
+    });
+  }
+  return matchedTenants[0] ?? null;
 }
 
-export async function getTenantIdByHostifyAccountRef(accountRef: string) {
-  const tenant = await getTenantByHostifyAccountRef(accountRef);
+export async function getTenantIdByHostifyAccountRef(
+  accountRef: string,
+  options?: { listingId?: string | null },
+) {
+  const tenant = await getTenantByHostifyAccountRef(accountRef, options);
   return tenant?.id ?? null;
 }
 
@@ -1716,7 +1868,7 @@ export async function resolveRuntimeConfigByAccountAndListing(input: {
     return null;
   }
 
-  const tenant = await getTenantByHostifyAccountRef(accountRef);
+  const tenant = await getTenantByHostifyAccountRef(accountRef, { listingId });
   if (!tenant) {
     return null;
   }

@@ -7,6 +7,7 @@ import { signPayload } from "@/lib/n8n/signer";
 import {
   extractHostifyAccountRefFromTopicArn,
   getTenantIdByHostifyAccountRef,
+  RuntimeConfigAmbiguousError,
   resolveRuntimeConfigByAccountAndListing,
   trackRuntimeResolution,
   trackRuntimeUnresolved,
@@ -51,20 +52,43 @@ export async function POST(request: NextRequest) {
     }
 
     const accountRefFromTopic = extractHostifyAccountRefFromTopicArn(payload.topicArn);
-    const resolved = await resolveRuntimeConfigByAccountAndListing({
-      listingId: payload.listingId,
-      hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic,
-      threadId: payload.threadId ?? null,
-      reservationId: payload.reservationId ?? null,
-    });
+    const normalizedListingId = payload.listingId.trim();
+    const normalizedAccountRef = payload.hostifyAccountRef ?? accountRefFromTopic ?? null;
+    let resolved: Awaited<ReturnType<typeof resolveRuntimeConfigByAccountAndListing>> = null;
+    try {
+      resolved = await resolveRuntimeConfigByAccountAndListing({
+        listingId: normalizedListingId,
+        hostifyAccountRef: normalizedAccountRef,
+        threadId: payload.threadId ?? null,
+        reservationId: payload.reservationId ?? null,
+      });
+    } catch (error) {
+      if (!(error instanceof RuntimeConfigAmbiguousError)) {
+        throw error;
+      }
+      return NextResponse.json(
+        {
+          error: "Runtime config is ambiguous for this listing/account mapping.",
+          code: "RUNTIME_CONFIG_AMBIGUOUS",
+          listingId: normalizedListingId,
+          hostifyAccountRef: error.hostifyAccountRef ?? normalizedAccountRef,
+          tenantIds: error.tenantIds,
+          reason: error.reason,
+          resolutionPath: "ambiguous",
+        },
+        { status: 409 },
+      );
+    }
     if (!resolved) {
-      const unresolvedAccountRef = payload.hostifyAccountRef ?? accountRefFromTopic ?? null;
+      const unresolvedAccountRef = normalizedAccountRef;
       if (unresolvedAccountRef) {
-        const unresolvedTenantId = await getTenantIdByHostifyAccountRef(unresolvedAccountRef);
+        const unresolvedTenantId = await getTenantIdByHostifyAccountRef(unresolvedAccountRef, {
+          listingId: normalizedListingId,
+        });
         if (unresolvedTenantId) {
           await trackRuntimeUnresolved({
             tenantId: unresolvedTenantId,
-            webhookListingId: payload.listingId,
+            webhookListingId: normalizedListingId,
             hostifyAccountRef: unresolvedAccountRef,
             threadId: payload.threadId ?? null,
             reservationId: payload.reservationId ?? null,
@@ -74,8 +98,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "No active host-account mapping found for listing.",
-          listingId: payload.listingId,
-          hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic ?? null,
+          listingId: normalizedListingId,
+          hostifyAccountRef: normalizedAccountRef,
           resolutionPath: "unresolved",
         },
         { status: 404 },
@@ -85,18 +109,18 @@ export async function POST(request: NextRequest) {
     if (payload.hostifyAccountRef || accountRefFromTopic) {
       await upsertHostAccountListing(
         resolved.tenant.id,
-        payload.listingId,
-        { hostifyAccountRef: payload.hostifyAccountRef ?? accountRefFromTopic },
+        normalizedListingId,
+        { hostifyAccountRef: normalizedAccountRef },
       );
     }
 
     await trackRuntimeResolution({
       tenantId: resolved.tenant.id,
       resolutionPath: resolved.resolutionPath,
-      webhookListingId: payload.listingId,
+      webhookListingId: normalizedListingId,
       canonicalListingId: resolved.mapping.listing_id,
       accountId: resolved.mapping.account_id ?? null,
-      hostifyAccountRef: resolved.mapping.hostify_account_ref ?? payload.hostifyAccountRef ?? accountRefFromTopic,
+      hostifyAccountRef: resolved.mapping.hostify_account_ref ?? normalizedAccountRef,
       threadId: payload.threadId ?? null,
       reservationId: payload.reservationId ?? null,
     });
