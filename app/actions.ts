@@ -17,6 +17,7 @@ import {
   getTenantForCurrentUser,
   updateTenantEconomicAssumptionsForCurrentUser,
   upsertTenantForCurrentUser,
+  validateHostifyOwnershipForCurrentUser,
 } from "@/lib/tenant/server";
 import type { TenantMode } from "@/lib/tenant/types";
 import { createEventPayload, TenantEventType } from "@/lib/tenant/events";
@@ -74,6 +75,12 @@ export async function saveOnboarding(
       };
     }
 
+    const shouldSyncListings = saveScope !== "assistant";
+    const hostifyValidation =
+      shouldSyncListings && hostifyApiKey
+        ? await validateHostifyOwnershipForCurrentUser(hostifyApiKey)
+        : null;
+
     const tenant = await upsertTenantForCurrentUser({
       hostifyApiKey: hostifyApiKey || undefined,
       telegramChatId,
@@ -81,10 +88,11 @@ export async function saveOnboarding(
       mode,
     });
     const decryptedHostifyKey = getDecryptedHostifyKey(tenant);
-    const shouldSyncListings = saveScope !== "assistant";
     const hostifyBinding =
       shouldSyncListings && decryptedHostifyKey
-        ? await syncTenantHostifyBindingForCurrentUser(decryptedHostifyKey)
+        ? await syncTenantHostifyBindingForCurrentUser(decryptedHostifyKey, {
+            binding: hostifyValidation ?? undefined,
+          })
         : null;
     const syncSummary =
       shouldSyncListings && decryptedHostifyKey

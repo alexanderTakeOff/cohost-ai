@@ -8,6 +8,7 @@ import {
   addTenantEvent,
   getDecryptedHostifyKey,
   getTenantForCurrentUser,
+  validateHostifyOwnershipForCurrentUser,
   syncHostAccountListingsFromHostify,
   syncTenantHostifyBindingForCurrentUser,
   upsertTenantForCurrentUser,
@@ -47,6 +48,9 @@ export async function POST(request: Request) {
       typeof body.hostifyApiKey === "string" && body.hostifyApiKey.trim()
         ? body.hostifyApiKey.trim()
         : undefined;
+    const hostifyBindingValidation = hostifyApiKey
+      ? await validateHostifyOwnershipForCurrentUser(hostifyApiKey)
+      : null;
 
     const tenant = await upsertTenantForCurrentUser({
       hostifyApiKey,
@@ -60,7 +64,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Hostify API key is required." }, { status: 400 });
     }
 
-    const binding = await syncTenantHostifyBindingForCurrentUser(decryptedHostifyKey);
+    const binding = await syncTenantHostifyBindingForCurrentUser(decryptedHostifyKey, {
+      binding: hostifyBindingValidation ?? undefined,
+    });
     const syncSummary = await syncHostAccountListingsFromHostify(tenant.id, decryptedHostifyKey);
 
     await addTenantEvent(
