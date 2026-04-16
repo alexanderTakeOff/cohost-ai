@@ -48,6 +48,14 @@ function TabButton({
   );
 }
 
+function FormNotice({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-950 dark:text-zinc-300">
+      {children}
+    </div>
+  );
+}
+
 export function OnboardingForm({
   tenant,
   listings,
@@ -74,21 +82,10 @@ export function OnboardingForm({
   }, [router, state.success, refreshState.success, toggleState.success, economicsState.success]);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-md border border-black/10 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-300">
-        <p className="font-medium">Suggested setup order</p>
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-zinc-600 dark:text-zinc-400">
-          <li>Save account settings first so Hostify access and Telegram routing are stored.</li>
-          <li>Refresh listings and enable only the listings you want to test during closed beta.</li>
-          <li>Keep draft mode on until dashboard activity looks healthy for your account.</li>
-        </ol>
-      </div>
-
+    <div className="space-y-5">
       {tenant ? (
-        <div className="rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
-          <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Current settings
-          </p>
+        <div className="rounded-xl bg-zinc-50 p-4 text-sm dark:bg-zinc-950">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Current settings</p>
           <div className="mt-3 space-y-2 text-zinc-700 dark:text-zinc-300">
             <p>
               Hostify customer id:{" "}
@@ -123,7 +120,7 @@ export function OnboardingForm({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 rounded-md border border-black/10 p-1 dark:border-white/15">
+      <div className="flex flex-wrap gap-2 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-950">
         <TabButton active={activeTab === "account"} onClick={() => setActiveTab("account")}>
           Account
         </TabButton>
@@ -139,13 +136,12 @@ export function OnboardingForm({
       </div>
 
       {activeTab === "account" ? (
-        <form action={action} className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15">
-          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            Account settings control the runtime resolver inputs, but the onboarding table is not the sole runtime
-            source of truth. Save here first so the system can verify Hostify access and operator delivery settings.
-          </div>
+        <form action={action} className="space-y-6 rounded-xl bg-white p-4 dark:bg-black">
+          <FormNotice>
+            Save account settings first so Hostify access and Telegram routing are stored.
+          </FormNotice>
           {tenant?.hostify_customer_id ? (
-            <div className="rounded-md border border-black/10 p-3 text-xs text-zinc-700 dark:border-white/15 dark:text-zinc-300">
+            <div className="rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300">
               This tenant is currently linked to Hostify account{" "}
               <span className="font-mono">{tenant.hostify_customer_id}</span>
               {tenant.hostify_customer_name ? (
@@ -212,7 +208,7 @@ export function OnboardingForm({
               <option value="autopilot">Autopilot (auto send)</option>
             </select>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Start in draft mode for beta. Switch to autopilot only after checking dashboard activity and listing
+              Start in draft mode for beta. Switch to autopilot only after checking monitoring activity and listing
               coverage.
             </p>
           </div>
@@ -244,11 +240,11 @@ export function OnboardingForm({
       ) : null}
 
       {activeTab === "listings" && tenant ? (
-        <div className="space-y-4 rounded-md border border-black/10 p-4 text-sm dark:border-white/15">
-          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+        <div className="space-y-4 rounded-xl bg-white p-4 text-sm dark:bg-black">
+          <FormNotice>
             Closed beta currently allows up to {CLOSED_BETA_MAX_ACTIVE_LISTINGS} active listings per client. Disabled
             listings stay visible here for control-plane review, but should not be used for beta traffic.
-          </div>
+          </FormNotice>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
@@ -276,7 +272,7 @@ export function OnboardingForm({
               available for beta testing.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-md border border-black/10 dark:border-white/15">
+            <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/15">
               <table className="min-w-full divide-y divide-black/10 text-xs dark:divide-white/15">
                 <thead className="bg-zinc-100 dark:bg-zinc-900">
                   <tr>
@@ -342,17 +338,17 @@ export function OnboardingForm({
           ) : null}
         </div>
       ) : activeTab === "listings" ? (
-        <div className="rounded-md border border-amber-300/50 bg-amber-50/80 p-4 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+        <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-300/10 dark:text-amber-100">
           Save the Account tab first so Hostify access is stored, then return here to sync and review listings.
         </div>
       ) : null}
 
       {activeTab === "assistant" ? (
-        <form action={action} className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15">
-          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+        <form action={action} className="space-y-6 rounded-xl bg-white p-4 dark:bg-black">
+          <FormNotice>
             Use this space for tenant-wide guidance. Keep listing-specific operational details in Hostify so runtime and
             operators stay aligned.
-          </div>
+          </FormNotice>
           <div className="space-y-2">
             <label htmlFor="globalInstructions" className="block text-sm font-medium">
               Global instructions (tenant-level)
@@ -398,12 +394,12 @@ export function OnboardingForm({
       {activeTab === "economics" ? (
         <form
           action={economicsAction}
-          className="space-y-6 rounded-md border border-black/10 p-4 dark:border-white/15"
+          className="space-y-6 rounded-xl bg-white p-4 dark:bg-black"
         >
-          <div className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          <FormNotice>
             These values are for beta ROI visibility only. They help you estimate value without affecting runtime
             routing or message delivery.
-          </div>
+          </FormNotice>
           <div className="space-y-2">
             <label htmlFor="laborCostPerHourUsd" className="block text-sm font-medium">
               Labor cost per hour (USD)
