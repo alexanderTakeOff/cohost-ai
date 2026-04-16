@@ -354,6 +354,7 @@ function getPromptCards(context: AssistantConversationContext): AssistantCard[] 
       return [
         quickReplies("Would you like to explore the private beta fit?", [
           { id: "continue", label: "Continue", message: "Continue" },
+          { id: "login", label: "Login", message: "I already have an account and want to sign in." },
           { id: "not-for-me", label: "Not for me", message: "Not for me" },
         ]),
       ];
@@ -401,14 +402,18 @@ function getPromptCards(context: AssistantConversationContext): AssistantCard[] 
 
 function buildPostDecisionCards(context: AssistantConversationContext, tenant?: { telegramChatId?: string | null } | null) {
   if (context.state === "auth" && !context.authenticated) {
+    const cards: AssistantCard[] = [];
+    if (context.decision) {
+      cards.push(decisionCard(context.decision));
+    }
+    cards.push({
+      type: "auth",
+      title: "Create or use your Cohost AI account",
+      description:
+        "Once you sign in, Jenny will keep going inside the same conversation and prepare the account setup card.",
+    } satisfies AssistantCard);
     return [
-      decisionCard(context.decision ?? "waitlist"),
-      {
-        type: "auth",
-        title: "Create or use your Cohost AI account",
-        description:
-          "Once you sign in, Jenny will keep going inside the same conversation and prepare the account setup card.",
-      } satisfies AssistantCard,
+      ...cards,
     ];
   }
 
@@ -476,6 +481,25 @@ export async function runTesterOnboardingSkill(
   }
 
   if (context.state === "welcome") {
+    if (/login|log in|sign in|i already have an account|войти|логин/i.test(normalized)) {
+      if (context.authenticated) {
+        context.state = input.tenant?.hasTenant && input.tenant?.hasHostifyBinding ? "completed" : "account_setup";
+      } else {
+        context.state = "auth";
+      }
+      return {
+        context,
+        assistantText: await renderAssistantCopy(
+          context.authenticated
+            ? "You are already signed in. I’ll take you to the next practical step now."
+            : "Absolutely. I’ll open the sign-in card right away so you can log in first.",
+          normalized,
+        ),
+        cards: context.authenticated ? buildPostDecisionCards(context, input.tenant) : buildPostDecisionCards(context),
+        openRoute: null,
+      };
+    }
+
     if (/not for me|no|later|не надо|не сейчас/i.test(normalized)) {
       context.state = "decision";
       context.decision = "not_fit";
