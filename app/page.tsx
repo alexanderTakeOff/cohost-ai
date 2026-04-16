@@ -15,6 +15,13 @@ import {
   getTenantForCurrentUser,
   getTenantMetrics,
 } from "@/lib/tenant/server";
+import type {
+  HostAccountListingRecord,
+  ListingEconomicsRow,
+  TenantEconomicsMetrics,
+  TenantMetrics,
+  TenantRecord,
+} from "@/lib/tenant/types";
 
 type HomePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -34,11 +41,11 @@ export default async function Home({ searchParams }: HomePageProps) {
   const isSupabaseConfigured = hasSupabaseEnv();
   let userEmail: string | null = null;
   let isEmailConfirmed = false;
-  let tenant = null;
-  let listings = [];
-  let listingEconomics = [];
-  let metrics = null;
-  let economics = null;
+  let tenant: TenantRecord | null = null;
+  let listings: HostAccountListingRecord[] = [];
+  let listingEconomics: ListingEconomicsRow[] = [];
+  let metrics: TenantMetrics | null = null;
+  let economics: TenantEconomicsMetrics | null = null;
 
   if (isSupabaseConfigured) {
     const supabase = await createClient();
