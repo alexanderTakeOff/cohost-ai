@@ -91,6 +91,22 @@ function asPayloadString(payload: Record<string, unknown>, ...keys: string[]) {
   return null;
 }
 
+function asPayloadNumber(payload: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+}
+
 function normalizeListingRow(row: Record<string, unknown>): HostAccountListingRecord {
   return {
     id: toStringOrNull(row.id) ?? "",
@@ -495,16 +511,16 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics>
     const payload = asRecord(event.payload);
     if (event.event_type === "ai_reply") {
       aiReplies += 1;
-      const costValue = payload.aiCostUsd;
-      const inputTokens = payload.aiInputTokens;
-      const outputTokens = payload.aiOutputTokens;
-      if (typeof costValue === "number" && Number.isFinite(costValue)) {
+      const costValue = asPayloadNumber(payload, "aiCostUsd", "ai_cost_usd", "ai_cost");
+      const inputTokens = asPayloadNumber(payload, "aiInputTokens", "ai_input_tokens", "input_tokens");
+      const outputTokens = asPayloadNumber(payload, "aiOutputTokens", "ai_output_tokens", "output_tokens");
+      if (costValue !== null) {
         aiCostUsd += costValue;
       }
-      if (typeof inputTokens === "number" && Number.isFinite(inputTokens)) {
+      if (inputTokens !== null) {
         aiInputTokens += inputTokens;
       }
-      if (typeof outputTokens === "number" && Number.isFinite(outputTokens)) {
+      if (outputTokens !== null) {
         aiOutputTokens += outputTokens;
       }
     }
@@ -789,14 +805,17 @@ export async function getTenantEconomicsMetrics(tenantId: string): Promise<Tenan
     if (event.event_type === "ai_reply") {
       aiReplies += 1;
       const payload = (event.payload ?? {}) as Record<string, unknown>;
-      if (typeof payload.aiCostUsd === "number" && Number.isFinite(payload.aiCostUsd)) {
-        aiCostUsd += payload.aiCostUsd;
+      const costValue = asPayloadNumber(payload, "aiCostUsd", "ai_cost_usd", "ai_cost");
+      const inputTokens = asPayloadNumber(payload, "aiInputTokens", "ai_input_tokens", "input_tokens");
+      const outputTokens = asPayloadNumber(payload, "aiOutputTokens", "ai_output_tokens", "output_tokens");
+      if (costValue !== null) {
+        aiCostUsd += costValue;
       }
-      if (typeof payload.aiInputTokens === "number" && Number.isFinite(payload.aiInputTokens)) {
-        aiInputTokens += payload.aiInputTokens;
+      if (inputTokens !== null) {
+        aiInputTokens += inputTokens;
       }
-      if (typeof payload.aiOutputTokens === "number" && Number.isFinite(payload.aiOutputTokens)) {
-        aiOutputTokens += payload.aiOutputTokens;
+      if (outputTokens !== null) {
+        aiOutputTokens += outputTokens;
       }
     }
   }
@@ -841,12 +860,15 @@ export async function getListingEconomicsForCurrentUser(): Promise<ListingEconom
   const map = new Map<string, ListingEconomicsRow>();
   for (const event of data ?? []) {
     const payload = (event.payload ?? {}) as Record<string, unknown>;
-    const listingId =
-      typeof payload.listingId === "string"
-        ? payload.listingId
-        : typeof payload.listing_id === "string"
-          ? payload.listing_id
-          : null;
+    const listingId = asPayloadString(
+      payload,
+      "listingId",
+      "listing_id",
+      "canonicalListingId",
+      "canonical_listing_id",
+      "webhookListingId",
+      "webhook_listing_id",
+    );
     if (!listingId) {
       continue;
     }
@@ -864,8 +886,9 @@ export async function getListingEconomicsForCurrentUser(): Promise<ListingEconom
       row.guestMessages += 1;
     } else if (event.event_type === "ai_reply") {
       row.aiReplies += 1;
-      if (typeof payload.aiCostUsd === "number" && Number.isFinite(payload.aiCostUsd)) {
-        row.aiCostUsd += payload.aiCostUsd;
+      const costValue = asPayloadNumber(payload, "aiCostUsd", "ai_cost_usd", "ai_cost");
+      if (costValue !== null) {
+        row.aiCostUsd += costValue;
       }
     }
 

@@ -9,6 +9,7 @@ import { CLOSED_BETA_LABEL, formatClosedBetaSummary, PRODUCT_NAME } from "@/lib/
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getActiveListingCountForCurrentUser,
   getHostAccountListingsForCurrentUser,
   getListingEconomicsForCurrentUser,
   getMaskedHostifyKey,
@@ -44,6 +45,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   let isEmailConfirmed = false;
   let tenant: TenantRecord | null = null;
   let listings: HostAccountListingRecord[] = [];
+  let activeListingCount = 0;
   let listingEconomics: ListingEconomicsRow[] = [];
   let metrics: TenantMetrics | null = null;
   let economics: TenantEconomicsMetrics | null = null;
@@ -61,6 +63,7 @@ export default async function Home({ searchParams }: HomePageProps) {
       listings = await getHostAccountListingsForCurrentUser();
     }
     if (activeTab === "monitoring" && tenant) {
+      activeListingCount = await getActiveListingCountForCurrentUser();
       metrics = await getTenantMetrics(tenant.id);
       economics = await getTenantEconomicsMetrics(tenant.id);
       listingEconomics = await getListingEconomicsForCurrentUser();
@@ -159,6 +162,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                   tenant={tenant}
                   metrics={metrics}
                   economics={economics}
+                  activeListingCount={activeListingCount}
                   listingEconomics={listingEconomics}
                   maskedKey={maskedKey}
                 />

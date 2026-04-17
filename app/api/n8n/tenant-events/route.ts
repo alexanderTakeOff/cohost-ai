@@ -38,24 +38,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
     }
 
-    const payload = JSON.parse(body) as {
-      tenantId?: string;
-      eventType?: string;
-      payload?: Record<string, unknown>;
-    };
-
-    if (!payload.tenantId || !payload.eventType) {
+    const rawBody = JSON.parse(body) as Record<string, unknown>;
+    const tenantId =
+      (typeof rawBody.tenantId === "string" ? rawBody.tenantId : null) ??
+      (typeof rawBody.tenant_id === "string" ? rawBody.tenant_id : null);
+    const eventType =
+      (typeof rawBody.eventType === "string" ? rawBody.eventType : null) ??
+      (typeof rawBody.event_type === "string" ? rawBody.event_type : null);
+    if (!tenantId || !eventType) {
       return NextResponse.json({ error: "tenantId and eventType are required." }, { status: 400 });
     }
 
-    const canonicalEventType = canonicalizeExternalEventType(payload.eventType) as TenantEventType;
-    const enrichedPayload = enrichEventPayload(payload.payload ?? {}, {
-      tenantId: payload.tenantId,
+    const rawPayload =
+      rawBody.payload && typeof rawBody.payload === "object" && !Array.isArray(rawBody.payload)
+        ? (rawBody.payload as Record<string, unknown>)
+        : Object.fromEntries(
+            Object.entries(rawBody).filter(
+              ([key]) => !["tenantId", "tenant_id", "eventType", "event_type", "payload"].includes(key),
+            ),
+          );
+    const canonicalEventType = canonicalizeExternalEventType(eventType) as TenantEventType;
+    const enrichedPayload = enrichEventPayload(rawPayload, {
+      tenantId,
       source: "n8n_callback",
     });
 
     await addTenantEventWithAdmin(
-      payload.tenantId,
+      tenantId,
       canonicalEventType,
       enrichedPayload,
       idempotencyKey,

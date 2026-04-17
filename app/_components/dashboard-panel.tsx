@@ -36,16 +36,17 @@ export function DashboardPanel({
   tenant,
   metrics,
   economics,
+  activeListingCount,
   listingEconomics,
   maskedKey,
 }: {
   tenant: TenantRecord;
   metrics: TenantMetrics;
   economics: TenantEconomicsMetrics;
+  activeListingCount: number;
   listingEconomics: ListingEconomicsRow[];
   maskedKey: string | null;
 }) {
-  const activeListingCount = listingEconomics.length;
   const runtimeHealthy = metrics.runtimeResolution.unresolved === 0;
   const runtimeSummary = runtimeHealthy ? "Runtime routing is healthy." : "Runtime routing needs attention.";
 

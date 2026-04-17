@@ -31,16 +31,37 @@ type PayloadContext = {
   source: "app" | "n8n_callback";
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function firstString(payload: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = asString(payload[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
 const EXTERNAL_EVENT_ALIASES: Record<string, TenantEventType> = {
   onboarding_saved: TenantEventType.ONBOARDING_UPDATED,
   tenant_config_updated: TenantEventType.ONBOARDING_UPDATED,
+  onboarding_updated: TenantEventType.ONBOARDING_UPDATED,
   n8n_sync_ok: TenantEventType.N8N_SYNC_OK,
+  n8n_sync_success: TenantEventType.N8N_SYNC_OK,
   n8n_sync_error: TenantEventType.N8N_SYNC_ERROR,
   n8n_sync_sent: TenantEventType.N8N_SYNC_SENT,
   listings_refreshed: TenantEventType.LISTINGS_REFRESHED,
   listing_status_changed: TenantEventType.LISTING_STATUS_CHANGED,
   guest_message: TenantEventType.GUEST_MESSAGE,
+  guest_message_received: TenantEventType.GUEST_MESSAGE,
+  inbound_guest_message: TenantEventType.GUEST_MESSAGE,
   ai_reply: TenantEventType.AI_REPLY,
+  ai_response: TenantEventType.AI_REPLY,
+  assistant_reply: TenantEventType.AI_REPLY,
+  assistant_response: TenantEventType.AI_REPLY,
   listing_inactive_blocked: TenantEventType.LISTING_INACTIVE_BLOCKED,
   runtime_resolution_observed: TenantEventType.RUNTIME_RESOLUTION_OBSERVED,
   listing_mapping_backfilled: TenantEventType.LISTING_MAPPING_BACKFILLED,
@@ -69,8 +90,54 @@ function asNumber(value: unknown): number | null {
 }
 
 export function canonicalizeExternalEventType(eventTypeRaw: string): TenantEventType {
-  const normalized = eventTypeRaw.trim().toLowerCase();
-  return EXTERNAL_EVENT_ALIASES[normalized] ?? TenantEventType.N8N_SYNC_ERROR;
+  const normalized = eventTypeRaw.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (EXTERNAL_EVENT_ALIASES[normalized]) {
+    return EXTERNAL_EVENT_ALIASES[normalized];
+  }
+  // Runtime-safe heuristics for callback payloads with inconsistent naming.
+  if (normalized.includes("guest") && normalized.includes("message")) {
+    return TenantEventType.GUEST_MESSAGE;
+  }
+  if (
+    (normalized.includes("ai") || normalized.includes("assistant")) &&
+    (normalized.includes("reply") || normalized.includes("response") || normalized.includes("message"))
+  ) {
+    return TenantEventType.AI_REPLY;
+  }
+  if (normalized.includes("runtime") && normalized.includes("config") && normalized.includes("missing")) {
+    return TenantEventType.RUNTIME_CONFIG_MISSING;
+  }
+  if (normalized.includes("runtime") && normalized.includes("resolution")) {
+    return TenantEventType.RUNTIME_RESOLUTION_OBSERVED;
+  }
+  if (normalized.includes("listing") && normalized.includes("backfill")) {
+    return TenantEventType.LISTING_MAPPING_BACKFILLED;
+  }
+  if (normalized.includes("listing") && normalized.includes("inactive")) {
+    return TenantEventType.LISTING_INACTIVE_BLOCKED;
+  }
+  if (normalized.includes("listing") && normalized.includes("refresh")) {
+    return TenantEventType.LISTINGS_REFRESHED;
+  }
+  if (normalized.includes("listing") && normalized.includes("status")) {
+    return TenantEventType.LISTING_STATUS_CHANGED;
+  }
+  if (normalized.includes("sync") && (normalized.includes("ok") || normalized.includes("success"))) {
+    return TenantEventType.N8N_SYNC_OK;
+  }
+  if (normalized.includes("sync") && normalized.includes("sent")) {
+    return TenantEventType.N8N_SYNC_SENT;
+  }
+  if (normalized.includes("sync") && (normalized.includes("error") || normalized.includes("fail"))) {
+    return TenantEventType.N8N_SYNC_ERROR;
+  }
+  if (
+    (normalized.includes("onboarding") || normalized.includes("tenant_config")) &&
+    (normalized.includes("save") || normalized.includes("update"))
+  ) {
+    return TenantEventType.ONBOARDING_UPDATED;
+  }
+  return TenantEventType.N8N_SYNC_ERROR;
 }
 
 export function createEventPayload(payload: EventPayloadBase & Record<string, unknown>) {
@@ -81,6 +148,9 @@ export function createEventPayload(payload: EventPayloadBase & Record<string, un
 }
 
 export function enrichEventPayload(payload: Record<string, unknown>, context: PayloadContext) {
+  const listingObject = asRecord(payload.listing);
+  const threadObject = asRecord(payload.thread);
+  const reservationObject = asRecord(payload.reservation);
   const eventVersion =
     typeof payload.eventVersion === "number" && Number.isFinite(payload.eventVersion)
       ? payload.eventVersion
@@ -89,9 +159,23 @@ export function enrichEventPayload(payload: Record<string, unknown>, context: Pa
     ...payload,
     tenantId: asString(payload.tenantId) ?? context.tenantId,
     source: asString(payload.source) ?? context.source,
-    listingId: asString(payload.listingId) ?? asString(payload.listing_id),
-    threadId: asString(payload.threadId) ?? asString(payload.thread_id),
-    reservationId: asString(payload.reservationId) ?? asString(payload.reservation_id),
+    listingId:
+      firstString(
+        payload,
+        "listingId",
+        "listing_id",
+        "canonicalListingId",
+        "canonical_listing_id",
+        "webhookListingId",
+        "webhook_listing_id",
+      ) ??
+      firstString(listingObject, "id", "listingId", "listing_id"),
+    threadId:
+      firstString(payload, "threadId", "thread_id") ??
+      firstString(threadObject, "id", "threadId", "thread_id"),
+    reservationId:
+      firstString(payload, "reservationId", "reservation_id", "bookingId", "booking_id") ??
+      firstString(reservationObject, "id", "reservationId", "reservation_id", "bookingId", "booking_id"),
     eventVersion,
     emittedAt: asString(payload.emittedAt) ?? new Date().toISOString(),
   };
