@@ -39,8 +39,8 @@ function TabButton({
       onClick={onClick}
       className={`rounded-xl px-3 py-2 text-sm font-medium transition duration-200 ${
         active
-          ? "bg-gradient-to-r from-violet-400 to-indigo-400 text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)]"
-          : "text-violet-900/80 hover:bg-white/65 hover:text-violet-950"
+          ? "border border-black/25 bg-gradient-to-r from-violet-400 to-indigo-400 text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)]"
+          : "border border-black/25 bg-white/60 text-violet-900/85 hover:bg-white/78 hover:text-violet-950"
       }`}
     >
       {children}
@@ -50,7 +50,7 @@ function TabButton({
 
 function FormNotice({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/70 bg-white/55 px-3 py-2 text-xs text-violet-900/80">
+    <div className="rounded-xl border border-black/25 bg-white/60 px-3 py-2 text-xs text-violet-900/80">
       {children}
     </div>
   );
@@ -141,7 +141,7 @@ export function OnboardingForm({
             Save account settings first so Hostify access and Telegram routing are stored.
           </FormNotice>
           {tenant?.hostify_customer_id ? (
-            <div className="rounded-xl border border-white/70 bg-white/55 p-3 text-xs text-violet-900/80">
+            <div className="rounded-xl border border-black/25 bg-white/60 p-3 text-xs text-violet-900/80">
               This tenant is currently linked to Hostify account{" "}
               <span className="font-mono">{tenant.hostify_customer_id}</span>
               {tenant.hostify_customer_name ? (
@@ -165,7 +165,7 @@ export function OnboardingForm({
               required={hostifyRequired}
               minLength={12}
               placeholder="Paste your Hostify API key"
-              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
             <p className="text-xs text-violet-900/70">
               {hostifyRequired
@@ -186,7 +186,7 @@ export function OnboardingForm({
               inputMode="numeric"
               defaultValue={tenant?.telegram_chat_id ?? ""}
               placeholder="e.g. -1001234567890"
-              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
             <p className="text-xs text-violet-900/70">
               Numeric chat id from Telegram (can include a leading minus). This is where operator-visible alerts and
@@ -202,7 +202,7 @@ export function OnboardingForm({
               id="mode"
               name="mode"
               defaultValue={tenant?.mode ?? "draft"}
-              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             >
               <option value="draft">Draft (manual approve)</option>
               <option value="autopilot">Autopilot (auto send)</option>
@@ -259,7 +259,7 @@ export function OnboardingForm({
               <button
                 type="submit"
                 disabled={isRefreshing}
-                className="rounded-xl border border-violet-200/80 bg-white/65 px-3 py-2 text-xs font-medium text-violet-900 transition hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-black/30 bg-white/70 px-3 py-2 text-xs font-medium text-violet-900 transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isRefreshing ? "Refreshing..." : "Refresh listings"}
               </button>
@@ -267,12 +267,12 @@ export function OnboardingForm({
           </div>
 
           {listings.length === 0 ? (
-            <p className="rounded-xl border border-white/70 bg-white/55 px-3 py-2 text-xs text-violet-900/80">
+            <p className="rounded-xl border border-black/25 bg-white/60 px-3 py-2 text-xs text-violet-900/80">
               No listings synced yet. Save account settings first, then refresh listings to confirm what will be
               available for beta testing.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-white/70 bg-white/55">
+            <div className="overflow-x-auto rounded-xl border border-black/25 bg-white/60">
               <table className="min-w-full divide-y divide-white/65 text-xs text-violet-950">
                 <thead className="bg-indigo-100/50">
                   <tr>
@@ -311,7 +311,7 @@ export function OnboardingForm({
                           <button
                             type="submit"
                             disabled={isToggling}
-                            className="rounded-lg border border-violet-200/80 bg-white/65 px-2 py-1 font-medium text-violet-900 transition hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-black/30 bg-white/70 px-2 py-1 font-medium text-violet-900 transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {listing.active ? "Disable" : "Enable"}
                           </button>
@@ -338,7 +338,7 @@ export function OnboardingForm({
           ) : null}
         </div>
       ) : activeTab === "listings" ? (
-        <div className="rounded-xl bg-amber-50/80 p-4 text-sm text-amber-900">
+        <div className="rounded-xl border border-black/25 bg-amber-50/80 p-4 text-sm text-amber-900">
           Save the Account tab first so Hostify access is stored, then return here to sync and review listings.
         </div>
       ) : null}
@@ -360,7 +360,7 @@ export function OnboardingForm({
               maxLength={6000}
               defaultValue={tenant?.global_instructions ?? ""}
               placeholder="Add global behavior notes for the assistant for this tenant."
-              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
             <p className="text-xs text-violet-900/70">
               Applies across all listings for this tenant. Listing-specific notes should remain in Hostify.
@@ -411,7 +411,7 @@ export function OnboardingForm({
               min={0}
               step="0.01"
               defaultValue={tenant?.labor_hourly_rate_usd ?? 0}
-              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
             <p className="text-xs text-violet-900/70">
               Used for estimated labor savings calculation.
@@ -429,7 +429,7 @@ export function OnboardingForm({
               min={0}
               step="0.1"
               defaultValue={tenant?.avg_handle_minutes_per_message ?? 0}
-              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
             <p className="text-xs text-violet-900/70">
               Interpreted as manual work replaced by each AI reply.

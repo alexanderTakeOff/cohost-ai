@@ -25,7 +25,7 @@ function formatMoneyUsd(value: number) {
 
 function Stat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/55 bg-white/55 p-4 shadow-[0_8px_20px_rgba(129,140,248,0.12)]">
+    <div className="rounded-xl border border-black/25 bg-white/62 p-4 shadow-[0_8px_20px_rgba(129,140,248,0.12)]">
       <p className="text-xs text-violet-900/70">{title}</p>
       <p className="mt-1 text-lg font-semibold text-violet-950">{value}</p>
     </div>
@@ -38,14 +38,12 @@ export function DashboardPanel({
   economics,
   listingEconomics,
   maskedKey,
-  userEmail,
 }: {
   tenant: TenantRecord;
   metrics: TenantMetrics;
   economics: TenantEconomicsMetrics;
   listingEconomics: ListingEconomicsRow[];
   maskedKey: string | null;
-  userEmail: string | null;
 }) {
   const activeListingCount = listingEconomics.length;
   const runtimeHealthy = metrics.runtimeResolution.unresolved === 0;
@@ -114,7 +112,7 @@ export function DashboardPanel({
           {listingEconomics.length === 0 ? (
             <p className="mt-3 text-sm text-violet-900/75">No listing-level economics data yet.</p>
           ) : (
-            <div className="mt-3 overflow-x-auto rounded-xl border border-white/60 bg-white/55">
+            <div className="mt-3 overflow-x-auto rounded-xl border border-black/25 bg-white/62">
               <table className="min-w-full divide-y divide-white/70 text-xs text-violet-950">
                 <thead className="bg-indigo-100/55">
                   <tr>
@@ -141,7 +139,7 @@ export function DashboardPanel({
       </GlassCard>
 
       <div className="glass-surface rounded-xl px-3 py-2 text-xs text-violet-900/80">
-        Signed in as: {userEmail ?? "Unknown user"} · Hostify key: {maskedKey ?? "Not set"}
+        Hostify key: {maskedKey ?? "Not set"}
       </div>
     </div>
   );

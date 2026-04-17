@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export type WorkspaceTab = "overview" | "onboarding" | "monitoring";
@@ -15,18 +16,27 @@ function tabButtonClass(active: boolean) {
     return "rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition duration-200";
   }
 
-  return "rounded-xl px-4 py-2 text-sm text-violet-900/80 transition duration-200 hover:bg-white/55 hover:text-violet-950";
+  return "rounded-xl border border-black/20 bg-white/50 px-4 py-2 text-sm text-violet-900/85 transition duration-200 hover:bg-white/75 hover:text-violet-950";
 }
 
 export function WorkspaceTabNav({ activeTab }: { activeTab: WorkspaceTab }) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [pendingTab, setPendingTab] = useState<WorkspaceTab | null>(null);
+  const uiActiveTab = isPending ? (pendingTab ?? activeTab) : activeTab;
 
   function onSelect(tab: WorkspaceTab) {
+    if (tab === uiActiveTab) {
+      return;
+    }
     const next = new URLSearchParams(searchParams.toString());
     next.set("tab", tab);
-    router.replace(`${pathname}?${next.toString()}`);
+    setPendingTab(tab);
+    startTransition(() => {
+      router.replace(`${pathname}?${next.toString()}`);
+    });
   }
 
   return (
@@ -36,9 +46,17 @@ export function WorkspaceTabNav({ activeTab }: { activeTab: WorkspaceTab }) {
           key={tab.key}
           type="button"
           onClick={() => onSelect(tab.key)}
-          className={tabButtonClass(activeTab === tab.key)}
+          disabled={isPending}
+          onMouseEnter={() => router.prefetch(`${pathname}?tab=${tab.key}`)}
+          className={`${tabButtonClass(uiActiveTab === tab.key)} disabled:cursor-wait disabled:opacity-95`}
+          aria-busy={isPending && pendingTab === tab.key}
         >
-          {tab.label}
+          <span className="inline-flex items-center gap-2">
+            {tab.label}
+            {isPending && pendingTab === tab.key ? (
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+            ) : null}
+          </span>
         </button>
       ))}
     </nav>
