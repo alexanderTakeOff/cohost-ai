@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { signOut } from "./actions";
 import { DashboardPanel } from "./_components/dashboard-panel";
+import { GlassCard } from "./_components/glass-card";
 import { OnboardingPanel } from "./_components/onboarding-panel";
 import { type WorkspaceTab, WorkspaceTabNav } from "./_components/workspace-tab-nav";
 import { CLOSED_BETA_LABEL, formatClosedBetaSummary, PRODUCT_NAME } from "@/lib/product/beta";
@@ -69,78 +70,83 @@ export default async function Home({ searchParams }: HomePageProps) {
   const maskedKey = getMaskedHostifyKey(tenant);
 
   return (
-    <main className="flex flex-1 justify-center bg-zinc-50 p-4 sm:p-6 dark:bg-black">
-      <section className="w-full max-w-6xl space-y-6 rounded-2xl border border-black/10 bg-white p-5 shadow-sm sm:p-8 dark:border-white/15 dark:bg-black">
-        <header className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-            {CLOSED_BETA_LABEL}
-          </p>
-          <h1 className="text-2xl font-semibold sm:text-3xl">{PRODUCT_NAME} Workspace</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Configure onboarding and monitor runtime health from one clean workspace.
-          </p>
+    <main className="flex flex-1 justify-center px-4 py-8 sm:py-10">
+      <section className="w-full max-w-5xl space-y-5">
+        <header className="glass-surface-strong fade-in-up space-y-4 p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-violet-950 sm:text-3xl">
+                {PRODUCT_NAME} Workspace
+              </h1>
+              <p className="text-sm text-violet-900/75">
+                Modern control plane for onboarding and runtime monitoring in one place.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-violet-300/80 bg-white/60 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-violet-800">
+                {CLOSED_BETA_LABEL}
+              </span>
+              {userEmail ? (
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="rounded-xl border border-white/70 bg-white/40 px-3 py-1.5 text-xs font-medium text-violet-900 transition hover:bg-white/65"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              ) : null}
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/70 bg-white/45 px-3 py-2 text-xs text-violet-900/80">
+            Signed in as: <span className="font-medium">{userEmail ?? "Guest"}</span>
+          </div>
         </header>
 
-        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-100">
-          <p className="font-medium">{formatClosedBetaSummary()}</p>
+        <div className="glass-surface fade-in-up rounded-xl bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
+          <p className="font-medium">🎉 {formatClosedBetaSummary()}</p>
         </div>
 
         {!isSupabaseConfigured ? (
-          <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-400/10 dark:text-amber-100">
+          <div className="glass-surface rounded-xl bg-amber-50/80 p-4 text-sm text-amber-900">
             Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables to
             enable authentication.
           </div>
         ) : userEmail ? (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-zinc-100 px-4 py-3 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              <p>
-                Signed in as <span className="font-medium">{userEmail}</span>
-              </p>
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="rounded-lg border border-black/20 px-3 py-1.5 text-xs font-medium dark:border-white/25"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
-
+          <div className="space-y-5 fade-in-up">
             <WorkspaceTabNav activeTab={activeTab} />
 
             {activeTab === "overview" ? (
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-950">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Suggested flow</p>
-                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-zinc-600 dark:text-zinc-400">
+                <GlassCard title="Suggested flow">
+                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-violet-900/85">
                     <li>Complete Account and Listings in Onboarding.</li>
                     <li>Keep Draft mode while testing message flow.</li>
                     <li>Review Monitoring counters before enabling Autopilot.</li>
                   </ol>
-                </div>
+                </GlassCard>
 
-                <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-950">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Quick access</p>
+                <GlassCard title="Quick access">
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link
                       href="/?tab=onboarding"
-                      className="inline-flex rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      className="inline-flex rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-3 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02]"
                     >
                       Open onboarding
                     </Link>
                     <Link
                       href="/?tab=monitoring"
-                      className="inline-flex rounded-lg border border-black/20 px-3 py-2 text-sm font-medium dark:border-white/25"
+                      className="inline-flex rounded-xl border border-violet-200/80 bg-white/60 px-3 py-2 text-sm font-medium text-violet-900 transition hover:bg-white/80"
                     >
                       Open monitoring
                     </Link>
                   </div>
                   {!isEmailConfirmed ? (
-                    <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+                    <p className="mt-3 text-xs text-amber-700">
                       Email confirmation may still be required in Supabase Auth settings.
                     </p>
                   ) : null}
-                </div>
+                </GlassCard>
               </div>
             ) : null}
 
@@ -159,24 +165,24 @@ export default async function Home({ searchParams }: HomePageProps) {
                   userEmail={userEmail}
                 />
               ) : (
-                <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300">
+                <GlassCard title="Monitoring" subtitle="Runtime counters appear after onboarding is saved.">
                   Complete onboarding setup first, then monitoring counters will appear here.
-                </div>
+                </GlassCard>
               )
             ) : null}
           </div>
         ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <GlassCard className="fade-in-up" title="Sign in required">
+            <p className="text-sm text-violet-900/80">
               Sign in to continue onboarding and monitor runtime health in the workspace tabs.
             </p>
             <Link
               href="/login"
-              className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+              className="mt-3 inline-flex rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02]"
             >
               Open login
             </Link>
-          </div>
+          </GlassCard>
         )}
       </section>
     </main>

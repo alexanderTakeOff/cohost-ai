@@ -37,10 +37,10 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-3 py-2 text-sm font-medium ${
+      className={`rounded-xl px-3 py-2 text-sm font-medium transition duration-200 ${
         active
-          ? "bg-black text-white dark:bg-white dark:text-black"
-          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          ? "bg-gradient-to-r from-violet-400 to-indigo-400 text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)]"
+          : "text-violet-900/80 hover:bg-white/65 hover:text-violet-950"
       }`}
     >
       {children}
@@ -50,7 +50,7 @@ function TabButton({
 
 function FormNotice({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-950 dark:text-zinc-300">
+    <div className="rounded-xl border border-white/70 bg-white/55 px-3 py-2 text-xs text-violet-900/80">
       {children}
     </div>
   );
@@ -82,11 +82,11 @@ export function OnboardingForm({
   }, [router, state.success, refreshState.success, toggleState.success, economicsState.success]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 fade-in-up">
       {tenant ? (
-        <div className="rounded-xl bg-zinc-50 p-4 text-sm dark:bg-zinc-950">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Current settings</p>
-          <div className="mt-3 space-y-2 text-zinc-700 dark:text-zinc-300">
+        <div className="glass-surface rounded-2xl p-4 text-sm">
+          <p className="text-xs text-violet-900/70">Current settings</p>
+          <div className="mt-3 space-y-2 text-violet-900/85">
             <p>
               Hostify customer id:{" "}
               <span className="font-medium">{tenant.hostify_customer_id ?? "Not connected yet"}</span>
@@ -120,7 +120,7 @@ export function OnboardingForm({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-950">
+      <div className="glass-surface flex flex-wrap gap-2 rounded-2xl p-1">
         <TabButton active={activeTab === "account"} onClick={() => setActiveTab("account")}>
           Account
         </TabButton>
@@ -136,12 +136,12 @@ export function OnboardingForm({
       </div>
 
       {activeTab === "account" ? (
-        <form action={action} className="space-y-6 rounded-xl bg-white p-4 dark:bg-black">
+        <form action={action} className="glass-surface space-y-6 rounded-2xl p-4">
           <FormNotice>
             Save account settings first so Hostify access and Telegram routing are stored.
           </FormNotice>
           {tenant?.hostify_customer_id ? (
-            <div className="rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300">
+            <div className="rounded-xl border border-white/70 bg-white/55 p-3 text-xs text-violet-900/80">
               This tenant is currently linked to Hostify account{" "}
               <span className="font-mono">{tenant.hostify_customer_id}</span>
               {tenant.hostify_customer_name ? (
@@ -165,9 +165,9 @@ export function OnboardingForm({
               required={hostifyRequired}
               minLength={12}
               placeholder="Paste your Hostify API key"
-              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-violet-900/70">
               {hostifyRequired
                 ? "Required for first setup."
                 : "Optional: leave empty to keep the existing key and save other changes only."}
@@ -186,9 +186,9 @@ export function OnboardingForm({
               inputMode="numeric"
               defaultValue={tenant?.telegram_chat_id ?? ""}
               placeholder="e.g. -1001234567890"
-              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-violet-900/70">
               Numeric chat id from Telegram (can include a leading minus). This is where operator-visible alerts and
               assistant outputs are routed for this client.
             </p>
@@ -202,12 +202,12 @@ export function OnboardingForm({
               id="mode"
               name="mode"
               defaultValue={tenant?.mode ?? "draft"}
-              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
             >
               <option value="draft">Draft (manual approve)</option>
               <option value="autopilot">Autopilot (auto send)</option>
             </select>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-violet-900/70">
               Start in draft mode for beta. Switch to autopilot only after checking monitoring activity and listing
               coverage.
             </p>
@@ -224,33 +224,33 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+              className="rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save account settings"}
             </button>
           </div>
 
           {state.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+            <p className="text-sm text-red-700">{state.error}</p>
           ) : null}
           {state.success ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">{state.success}</p>
+            <p className="text-sm text-emerald-700">{state.success}</p>
           ) : null}
         </form>
       ) : null}
 
       {activeTab === "listings" && tenant ? (
-        <div className="space-y-4 rounded-xl bg-white p-4 text-sm dark:bg-black">
+        <div className="glass-surface space-y-4 rounded-2xl p-4 text-sm">
           <FormNotice>
             Closed beta currently allows up to {CLOSED_BETA_MAX_ACTIVE_LISTINGS} active listings per client. Disabled
             listings stay visible here for control-plane review, but should not be used for beta traffic.
           </FormNotice>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs uppercase tracking-wide text-violet-900/60">
                 Listings
               </p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+              <p className="mt-1 text-xs text-violet-900/75">
                 Pulled from Hostify by your API key. Route matching uses the webhook listing ID, while this table is
                 your operator control surface for enable or disable decisions.
               </p>
@@ -259,7 +259,7 @@ export function OnboardingForm({
               <button
                 type="submit"
                 disabled={isRefreshing}
-                className="rounded-md border border-black/20 px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25"
+                className="rounded-xl border border-violet-200/80 bg-white/65 px-3 py-2 text-xs font-medium text-violet-900 transition hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isRefreshing ? "Refreshing..." : "Refresh listings"}
               </button>
@@ -267,14 +267,14 @@ export function OnboardingForm({
           </div>
 
           {listings.length === 0 ? (
-            <p className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            <p className="rounded-xl border border-white/70 bg-white/55 px-3 py-2 text-xs text-violet-900/80">
               No listings synced yet. Save account settings first, then refresh listings to confirm what will be
               available for beta testing.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/15">
-              <table className="min-w-full divide-y divide-black/10 text-xs dark:divide-white/15">
-                <thead className="bg-zinc-100 dark:bg-zinc-900">
+            <div className="overflow-x-auto rounded-xl border border-white/70 bg-white/55">
+              <table className="min-w-full divide-y divide-white/65 text-xs text-violet-950">
+                <thead className="bg-indigo-100/50">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Status</th>
                     <th className="px-3 py-2 text-left font-medium">Listing</th>
@@ -283,15 +283,15 @@ export function OnboardingForm({
                     <th className="px-3 py-2 text-left font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-black/10 dark:divide-white/15">
+                <tbody className="divide-y divide-white/65">
                   {listings.map((listing) => (
                     <tr key={listing.id}>
                       <td className="px-3 py-2">
                         <span
                           className={
                             listing.active
-                              ? "rounded bg-emerald-100 px-2 py-1 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
-                              : "rounded bg-zinc-200 px-2 py-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                              ? "rounded-full bg-emerald-100 px-2 py-1 text-emerald-800"
+                              : "rounded-full bg-zinc-200 px-2 py-1 text-zinc-700"
                           }
                         >
                           {listing.active ? "Enabled" : "Disabled"}
@@ -311,7 +311,7 @@ export function OnboardingForm({
                           <button
                             type="submit"
                             disabled={isToggling}
-                            className="rounded-md border border-black/20 px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25"
+                            className="rounded-lg border border-violet-200/80 bg-white/65 px-2 py-1 font-medium text-violet-900 transition hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {listing.active ? "Disable" : "Enable"}
                           </button>
@@ -325,26 +325,26 @@ export function OnboardingForm({
           )}
 
           {refreshState.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{refreshState.error}</p>
+            <p className="text-sm text-red-700">{refreshState.error}</p>
           ) : null}
           {refreshState.success ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">{refreshState.success}</p>
+            <p className="text-sm text-emerald-700">{refreshState.success}</p>
           ) : null}
           {toggleState.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{toggleState.error}</p>
+            <p className="text-sm text-red-700">{toggleState.error}</p>
           ) : null}
           {toggleState.success ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">{toggleState.success}</p>
+            <p className="text-sm text-emerald-700">{toggleState.success}</p>
           ) : null}
         </div>
       ) : activeTab === "listings" ? (
-        <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-300/10 dark:text-amber-100">
+        <div className="rounded-xl bg-amber-50/80 p-4 text-sm text-amber-900">
           Save the Account tab first so Hostify access is stored, then return here to sync and review listings.
         </div>
       ) : null}
 
       {activeTab === "assistant" ? (
-        <form action={action} className="space-y-6 rounded-xl bg-white p-4 dark:bg-black">
+        <form action={action} className="glass-surface space-y-6 rounded-2xl p-4">
           <FormNotice>
             Use this space for tenant-wide guidance. Keep listing-specific operational details in Hostify so runtime and
             operators stay aligned.
@@ -360,9 +360,9 @@ export function OnboardingForm({
               maxLength={6000}
               defaultValue={tenant?.global_instructions ?? ""}
               placeholder="Add global behavior notes for the assistant for this tenant."
-              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-violet-900/70">
               Applies across all listings for this tenant. Listing-specific notes should remain in Hostify.
             </p>
           </div>
@@ -376,17 +376,17 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+              className="rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save assistant settings"}
             </button>
           </div>
 
           {state.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+            <p className="text-sm text-red-700">{state.error}</p>
           ) : null}
           {state.success ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">{state.success}</p>
+            <p className="text-sm text-emerald-700">{state.success}</p>
           ) : null}
         </form>
       ) : null}
@@ -394,7 +394,7 @@ export function OnboardingForm({
       {activeTab === "economics" ? (
         <form
           action={economicsAction}
-          className="space-y-6 rounded-xl bg-white p-4 dark:bg-black"
+          className="glass-surface space-y-6 rounded-2xl p-4"
         >
           <FormNotice>
             These values are for beta ROI visibility only. They help you estimate value without affecting runtime
@@ -411,9 +411,9 @@ export function OnboardingForm({
               min={0}
               step="0.01"
               defaultValue={tenant?.labor_hourly_rate_usd ?? 0}
-              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-violet-900/70">
               Used for estimated labor savings calculation.
             </p>
           </div>
@@ -429,9 +429,9 @@ export function OnboardingForm({
               min={0}
               step="0.1"
               defaultValue={tenant?.avg_handle_minutes_per_message ?? 0}
-              className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+              className="w-full rounded-xl border border-violet-200/80 bg-white/75 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-violet-900/70">
               Interpreted as manual work replaced by each AI reply.
             </p>
           </div>
@@ -440,17 +440,17 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isEconomicsPending}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+              className="rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isEconomicsPending ? "Saving..." : "Save economics settings"}
             </button>
           </div>
 
           {economicsState.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{economicsState.error}</p>
+            <p className="text-sm text-red-700">{economicsState.error}</p>
           ) : null}
           {economicsState.success ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">{economicsState.success}</p>
+            <p className="text-sm text-emerald-700">{economicsState.success}</p>
           ) : null}
         </form>
       ) : null}

@@ -12,10 +12,10 @@ const TABS: Array<{ key: WorkspaceTab; label: string }> = [
 
 function tabButtonClass(active: boolean) {
   if (active) {
-    return "rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900";
+    return "rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition duration-200";
   }
 
-  return "rounded-lg px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900";
+  return "rounded-xl px-4 py-2 text-sm text-violet-900/80 transition duration-200 hover:bg-white/55 hover:text-violet-950";
 }
 
 export function WorkspaceTabNav({ activeTab }: { activeTab: WorkspaceTab }) {
@@ -30,7 +30,7 @@ export function WorkspaceTabNav({ activeTab }: { activeTab: WorkspaceTab }) {
   }
 
   return (
-    <nav className="inline-flex flex-wrap gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-950">
+    <nav className="glass-surface inline-flex flex-wrap gap-1 p-1">
       {TABS.map((tab) => (
         <button
           key={tab.key}
