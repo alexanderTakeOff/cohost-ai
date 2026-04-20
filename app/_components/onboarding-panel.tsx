@@ -7,11 +7,9 @@ import { GlassCard } from "./glass-card";
 export function OnboardingPanel({
   tenant,
   listings,
-  maskedKey,
 }: {
   tenant: TenantRecord | null;
   listings: HostAccountListingRecord[];
-  maskedKey: string | null;
 }) {
   return (
     <div className="fade-in-up space-y-5">
@@ -25,12 +23,6 @@ export function OnboardingPanel({
           <li>Review monitoring counters before wider rollout.</li>
         </ol>
       </GlassCard>
-
-      {maskedKey ? (
-        <p className="glass-surface rounded-xl px-3 py-2 text-xs text-violet-900/85">
-          Existing Hostify key: {maskedKey}
-        </p>
-      ) : null}
 
       <OnboardingForm tenant={tenant} listings={listings} />
 

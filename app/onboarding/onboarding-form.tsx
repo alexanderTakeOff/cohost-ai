@@ -72,6 +72,7 @@ export function OnboardingForm({
     initialState,
   );
   const [activeTab, setActiveTab] = useState<OnboardingTab>(tenant ? "listings" : "account");
+  const [isAccountEditorOpen, setIsAccountEditorOpen] = useState(false);
   const hostifyRequired = !tenant?.hostify_api_key_encrypted;
   const activeListingsCount = listings.filter((listing) => listing.active).length;
 
@@ -111,6 +112,12 @@ export function OnboardingForm({
               </span>
             </p>
             <p>
+              Hostify key:{" "}
+              <span className="font-medium">
+                {tenant.hostify_api_key_encrypted ? "Configured" : "Not set"}
+              </span>
+            </p>
+            <p>
               Closed beta active listings:{" "}
               <span className="font-medium">
                 {activeListingsCount} / {CLOSED_BETA_MAX_ACTIVE_LISTINGS}
@@ -136,107 +143,135 @@ export function OnboardingForm({
       </div>
 
       {activeTab === "account" ? (
-        <form action={action} className="glass-surface space-y-6 rounded-2xl p-4">
-          <FormNotice>
-            Save account settings first so Hostify access and Telegram routing are stored.
-          </FormNotice>
-          {tenant?.hostify_customer_id ? (
-            <div className="rounded-xl border border-black/25 bg-white/60 p-3 text-xs text-violet-900/80">
-              This tenant is currently linked to Hostify account{" "}
-              <span className="font-mono">{tenant.hostify_customer_id}</span>
-              {tenant.hostify_customer_name ? (
-                <>
-                  {" "}
-                  (<span className="font-medium">{tenant.hostify_customer_name}</span>)
-                </>
+        <div className="glass-surface space-y-4 rounded-2xl p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <FormNotice>
+              Account settings are collapsed by default to avoid accidental edits.
+            </FormNotice>
+            {!isAccountEditorOpen ? (
+              <button
+                type="button"
+                onClick={() => setIsAccountEditorOpen(true)}
+                className="rounded-full border border-black/35 bg-white/72 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-white"
+              >
+                Edit account settings
+              </button>
+            ) : null}
+          </div>
+
+          {isAccountEditorOpen ? (
+            <form action={action} className="space-y-6">
+              {tenant?.hostify_customer_id ? (
+                <div className="rounded-xl border border-black/25 bg-white/60 p-3 text-xs text-violet-900/80">
+                  This tenant is currently linked to Hostify account{" "}
+                  <span className="font-mono">{tenant.hostify_customer_id}</span>
+                  {tenant.hostify_customer_name ? (
+                    <>
+                      {" "}
+                      (<span className="font-medium">{tenant.hostify_customer_name}</span>)
+                    </>
+                  ) : null}
+                  . If you need a different Hostify account, create a separate tenant instead of replacing this
+                  binding.
+                </div>
               ) : null}
-              . If you need a different Hostify account, create a separate tenant instead of replacing this binding.
-            </div>
+
+              <div className="space-y-2">
+                <label htmlFor="hostifyApiKey" className="block text-sm font-medium">
+                  Hostify API key
+                </label>
+                <input
+                  id="hostifyApiKey"
+                  name="hostifyApiKey"
+                  type="password"
+                  required={hostifyRequired}
+                  minLength={12}
+                  placeholder="Paste your Hostify API key"
+                  className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                />
+                <p className="text-xs text-violet-900/70">
+                  {hostifyRequired
+                    ? "Required for first setup."
+                    : "Optional: leave empty to keep the existing key and save other changes only."}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="telegramChatId" className="block text-sm font-medium">
+                  Telegram chat id
+                </label>
+                <input
+                  id="telegramChatId"
+                  name="telegramChatId"
+                  type="text"
+                  required
+                  inputMode="numeric"
+                  defaultValue={tenant?.telegram_chat_id ?? ""}
+                  placeholder="e.g. -1001234567890"
+                  className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                />
+                <p className="text-xs text-violet-900/70">
+                  Numeric chat id from Telegram (can include a leading minus). This is where operator-visible alerts and
+                  assistant outputs are routed for this client.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="mode" className="block text-sm font-medium">
+                  Mode
+                </label>
+                <select
+                  id="mode"
+                  name="mode"
+                  defaultValue={tenant?.mode ?? "draft"}
+                  className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                >
+                  <option value="draft">Draft (manual approve)</option>
+                  <option value="autopilot">Autopilot (auto send)</option>
+                </select>
+                <p className="text-xs text-violet-900/70">
+                  Start in draft mode for beta. Switch to autopilot only after checking monitoring activity and listing
+                  coverage.
+                </p>
+              </div>
+
+              <input
+                type="hidden"
+                name="globalInstructions"
+                value={tenant?.global_instructions ?? ""}
+                readOnly
+              />
+              <input type="hidden" name="saveScope" value="account" />
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  onClick={() => {
+                    setIsAccountEditorOpen(false);
+                  }}
+                  className="rounded-full bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPending ? "Saving..." : "Save account settings"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAccountEditorOpen(false)}
+                  className="rounded-full border border-black/35 bg-white/72 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-white"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {state.error ? (
+                <p className="text-sm text-red-700">{state.error}</p>
+              ) : null}
+              {state.success ? (
+                <p className="text-sm text-emerald-700">{state.success}</p>
+              ) : null}
+            </form>
           ) : null}
-
-          <div className="space-y-2">
-            <label htmlFor="hostifyApiKey" className="block text-sm font-medium">
-              Hostify API key
-            </label>
-            <input
-              id="hostifyApiKey"
-              name="hostifyApiKey"
-              type="password"
-              required={hostifyRequired}
-              minLength={12}
-              placeholder="Paste your Hostify API key"
-              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-            />
-            <p className="text-xs text-violet-900/70">
-              {hostifyRequired
-                ? "Required for first setup."
-                : "Optional: leave empty to keep the existing key and save other changes only."}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="telegramChatId" className="block text-sm font-medium">
-              Telegram chat id
-            </label>
-            <input
-              id="telegramChatId"
-              name="telegramChatId"
-              type="text"
-              required
-              inputMode="numeric"
-              defaultValue={tenant?.telegram_chat_id ?? ""}
-              placeholder="e.g. -1001234567890"
-              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-            />
-            <p className="text-xs text-violet-900/70">
-              Numeric chat id from Telegram (can include a leading minus). This is where operator-visible alerts and
-              assistant outputs are routed for this client.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="mode" className="block text-sm font-medium">
-              Mode
-            </label>
-            <select
-              id="mode"
-              name="mode"
-              defaultValue={tenant?.mode ?? "draft"}
-              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-            >
-              <option value="draft">Draft (manual approve)</option>
-              <option value="autopilot">Autopilot (auto send)</option>
-            </select>
-            <p className="text-xs text-violet-900/70">
-              Start in draft mode for beta. Switch to autopilot only after checking monitoring activity and listing
-              coverage.
-            </p>
-          </div>
-
-          <input
-            type="hidden"
-            name="globalInstructions"
-            value={tenant?.global_instructions ?? ""}
-          />
-          <input type="hidden" name="saveScope" value="account" />
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isPending ? "Saving..." : "Save account settings"}
-            </button>
-          </div>
-
-          {state.error ? (
-            <p className="text-sm text-red-700">{state.error}</p>
-          ) : null}
-          {state.success ? (
-            <p className="text-sm text-emerald-700">{state.success}</p>
-          ) : null}
-        </form>
+        </div>
       ) : null}
 
       {activeTab === "listings" && tenant ? (

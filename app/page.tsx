@@ -85,13 +85,13 @@ export default async function Home({ searchParams }: HomePageProps) {
                 Modern control plane for onboarding and runtime monitoring in one place.
               </p>
             </div>
-            <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
-              <div className="flex items-center gap-2">
-                <span className="rounded-full border border-black/30 bg-white/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-violet-800">
+            <div className="ml-auto flex w-full justify-end sm:w-auto">
+              <div className="flex w-full flex-col items-end gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                <span className="inline-flex h-9 items-center rounded-full border border-black/30 bg-white/70 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-violet-800">
                   {CLOSED_BETA_LABEL}
                 </span>
                 <details className="relative">
-                  <summary className="cursor-pointer list-none rounded-full border border-black/30 bg-white/75 px-2 py-0.5 text-xs font-semibold text-violet-900 transition hover:bg-white">
+                  <summary className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-black/30 bg-white/75 text-xs font-semibold text-violet-900 transition hover:bg-white">
                     i
                   </summary>
                   <div className="absolute right-0 top-8 z-10 w-64 rounded-xl border border-black/30 bg-white/92 p-3 text-xs text-violet-900 shadow-[0_12px_30px_rgba(30,27,75,0.16)]">
@@ -101,20 +101,22 @@ export default async function Home({ searchParams }: HomePageProps) {
                     </p>
                   </div>
                 </details>
-              </div>
-              {userEmail ? (
-                <div className="flex max-w-full items-center gap-2 text-xs text-violet-900/85">
-                  <span className="max-w-[52vw] truncate sm:max-w-[260px]">{userEmail}</span>
+                {userEmail ? (
+                  <span className="inline-flex h-9 max-w-[60vw] items-center truncate rounded-full border border-black/30 bg-white/65 px-4 text-xs text-violet-900/90 sm:max-w-[260px]">
+                    {userEmail}
+                  </span>
+                ) : null}
+                {userEmail ? (
                   <form action={signOut}>
                     <button
                       type="submit"
-                      className="rounded-xl border border-black/35 bg-white/55 px-3 py-1.5 text-xs font-medium text-violet-900 transition hover:bg-white/78"
+                      className="inline-flex h-9 items-center rounded-full border border-black/35 bg-white/55 px-4 text-xs font-semibold text-violet-900 transition hover:bg-white/78"
                     >
                       Log out
                     </button>
                   </form>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
           </div>
         </header>
@@ -129,20 +131,13 @@ export default async function Home({ searchParams }: HomePageProps) {
             <WorkspaceTabNav activeTab={activeTab} />
 
             {activeTab === "overview" ? (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4">
                 <GlassCard title="Suggested flow">
                   <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-violet-900/85">
                     <li>Complete Account and Listings in Onboarding.</li>
                     <li>Keep Draft mode while testing message flow.</li>
                     <li>Review Monitoring counters before enabling Autopilot.</li>
                   </ol>
-                </GlassCard>
-
-                <GlassCard title="Workspace notes">
-                  <p className="text-xs text-violet-900/80">
-                    Use the tabs above to move between onboarding and monitoring. This avoids duplicated
-                    navigation controls and keeps the workspace compact.
-                  </p>
                   {!isEmailConfirmed ? (
                     <p className="mt-3 text-xs text-amber-800">
                       Email confirmation may still be required in Supabase Auth settings.
@@ -153,7 +148,7 @@ export default async function Home({ searchParams }: HomePageProps) {
             ) : null}
 
             {activeTab === "onboarding" ? (
-              <OnboardingPanel tenant={tenant} listings={listings} maskedKey={maskedKey} />
+              <OnboardingPanel tenant={tenant} listings={listings} />
             ) : null}
 
             {activeTab === "monitoring" ? (
