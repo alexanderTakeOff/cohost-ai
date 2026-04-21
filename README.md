@@ -28,6 +28,8 @@ Then fill in:
 - `HOSTIFY_KEY_ENCRYPTION_SECRET`
 - `N8N_WEBHOOK_URL`
 - `N8N_WEBHOOK_SECRET`
+- `CLOSED_BETA_MIN_ACTIVE_LISTINGS` (optional, default: 1)
+- `CLOSED_BETA_MAX_ACTIVE_LISTINGS` (optional, default: 30)
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -43,7 +45,7 @@ Auth and MVP pages:
 Current product assumptions for the closed beta:
 
 - up to 10 client accounts
-- up to 30 active listings per client in the control plane
+- between 1 and 30 active listings per client in the control plane (both bounds configurable via env vars)
 - free during beta
 - draft mode recommended first, autopilot only after controlled validation
 
