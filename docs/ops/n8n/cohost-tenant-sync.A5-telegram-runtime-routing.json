@@ -537,7 +537,7 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}",
+        "chatId": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}",
         "text": "=❇️\n{{ $json.message || \"empty message\"}} \n\n\n\n",
         "replyMarkup": "=inlineKeyboard",
         "forceReply": {},
@@ -669,12 +669,12 @@
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "Use this tool to Send  FLAGGING  and ALERTS Messages from Jenny to Telegram in case agent  (Jenny) wants to Escalate guest request or problem to team!   \n\nUse this tool to Send  Messages from Jenny to Telegram in case:\n- agent  (Jenny) wants to Escalate guest request or problem to team!  \n- message contains \"?!\" or \"!?\" \n- message  is FLAGGING  \n- message  is ALERT \n\n",
-        "chatId": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}",
+        "chatId": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}",
         "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
         "additionalFields": {
           "appendAttribution": false,
           "parse_mode": "HTML",
-          "message_thread_id": 2
+          "message_thread_id": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId ? 2 : undefined }}"
         }
       },
       "type": "n8n-nodes-base.telegramTool",
@@ -697,12 +697,12 @@
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "Use this tool to Send  Messages from Jenny to  team \n\n\n",
-        "chatId": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}",
+        "chatId": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}",
         "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
         "additionalFields": {
           "appendAttribution": false,
           "parse_mode": "HTML",
-          "message_thread_id": "={{ $json.message.message_thread_id }}"
+          "message_thread_id": "={{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId ? $json.message.message_thread_id : undefined }}"
         }
       },
       "type": "n8n-nodes-base.telegramTool",

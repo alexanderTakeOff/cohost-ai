@@ -19,7 +19,7 @@ import type {
 
 export type OnboardingInput = {
   hostifyApiKey?: string;
-  telegramChatId: string;
+  telegramChatId?: string | null;
   globalInstructions?: string | null;
   mode: TenantMode;
 };
@@ -343,7 +343,7 @@ export async function upsertTenantForCurrentUser(input: OnboardingInput) {
   const payload = {
     user_id: userId,
     hostify_api_key_encrypted: encryptedHostifyKey,
-    telegram_chat_id: input.telegramChatId,
+    telegram_chat_id: input.telegramChatId ?? null,
     global_instructions:
       input.globalInstructions !== undefined
         ? input.globalInstructions
@@ -372,7 +372,7 @@ export async function upsertTenantForCurrentUser(input: OnboardingInput) {
   const legacyPayload = {
     user_id: userId,
     hostify_api_key_encrypted: encryptedHostifyKey,
-    telegram_chat_id: input.telegramChatId,
+    telegram_chat_id: input.telegramChatId ?? null,
     mode: parseTenantMode(input.mode),
     is_active: true,
   };
