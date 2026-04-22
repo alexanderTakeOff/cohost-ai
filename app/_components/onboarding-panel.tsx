@@ -17,7 +17,7 @@ export function OnboardingPanel({
         title="Setup flow"
         subtitle="Save account settings, refresh listings, then switch to autopilot only after monitoring looks healthy."
       >
-        <ol className="list-decimal space-y-1 pl-5 text-xs text-slate-700">
+        <ol className="list-decimal space-y-1 pl-5 text-xs text-theme-muted">
           <li>Add Hostify key (Telegram chat ID is optional).</li>
           <li>Refresh listings and enable only what you will test.</li>
           <li>Review monitoring counters before wider rollout.</li>
@@ -27,7 +27,7 @@ export function OnboardingPanel({
       <OnboardingForm tenant={tenant} listings={listings} />
 
       {!hasN8nEnv() ? (
-        <p className="rounded-xl bg-amber-50/80 px-3 py-2 text-xs text-amber-800">
+        <p className="surface-subtle rounded-xl px-3 py-2 text-xs">
           N8N_WEBHOOK_URL / N8N_WEBHOOK_SECRET are not set yet. Data can be saved, but n8n sync is disabled.
         </p>
       ) : null}

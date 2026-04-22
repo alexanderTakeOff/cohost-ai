@@ -11,7 +11,7 @@ export default function BetaGuidePage() {
         <iframe
           src={GAMMA_GUIDE_URL}
           title="Cohost AI Beta Guide"
-          className="h-[calc(100vh-5.5rem)] min-h-[540px] w-full flex-1 rounded-xl border border-slate-500/35 bg-slate-100/70"
+          className="h-[calc(100vh-5.5rem)] min-h-[540px] w-full flex-1 rounded-xl border border-slate-500/35 bg-[#111722]/80"
           loading="lazy"
           allow="fullscreen"
         />

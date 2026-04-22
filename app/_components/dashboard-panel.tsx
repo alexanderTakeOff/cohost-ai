@@ -25,9 +25,9 @@ function formatMoneyUsd(value: number) {
 
 function Stat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-500/35 bg-slate-100/72 p-4 shadow-[0_8px_20px_rgba(43,52,73,0.14)]">
-      <p className="text-xs text-slate-600">{title}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+    <div className="surface-subtle rounded-xl p-4 shadow-[0_8px_20px_rgba(7,10,19,0.35)]">
+      <p className="text-theme-soft text-xs">{title}</p>
+      <p className="text-theme mt-1 text-lg font-semibold">{value}</p>
     </div>
   );
 }
@@ -55,8 +55,8 @@ export function DashboardPanel({
       <div
         className={`glass-surface-strong rounded-xl p-4 text-sm ${
           runtimeHealthy
-            ? "bg-emerald-50/70 text-emerald-900"
-            : "bg-amber-50/80 text-amber-900"
+            ? "bg-emerald-900/20 text-emerald-300"
+            : "bg-amber-900/28 text-amber-200"
         }`}
       >
         <p className="font-medium">{runtimeSummary}</p>
@@ -95,7 +95,7 @@ export function DashboardPanel({
 
       <GlassCard className="p-0">
         <details className="rounded-xl p-4">
-          <summary className="cursor-pointer text-sm font-medium text-slate-900">
+          <summary className="text-theme cursor-pointer text-sm font-medium">
             Resolution path details
           </summary>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -109,13 +109,13 @@ export function DashboardPanel({
 
       <GlassCard className="p-0">
         <details className="rounded-xl p-4">
-          <summary className="cursor-pointer text-sm font-medium text-slate-900">Listing economics</summary>
+          <summary className="text-theme cursor-pointer text-sm font-medium">Listing economics</summary>
           {listingEconomics.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-600">No listing-level economics data yet.</p>
+            <p className="text-theme-soft mt-3 text-sm">No listing-level economics data yet.</p>
           ) : (
-            <div className="mt-3 overflow-x-auto rounded-xl border border-slate-500/35 bg-slate-100/72">
-              <table className="min-w-full divide-y divide-slate-200 text-xs text-slate-900">
-                <thead className="bg-slate-200/80">
+            <div className="surface-subtle mt-3 overflow-x-auto rounded-xl">
+              <table className="text-theme min-w-full divide-y divide-slate-500/30 text-xs">
+                <thead className="bg-slate-500/18">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Listing ID</th>
                     <th className="px-3 py-2 text-left font-medium">Guest messages</th>
@@ -123,7 +123,7 @@ export function DashboardPanel({
                     <th className="px-3 py-2 text-left font-medium">Cost (USD)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200/90">
+                <tbody className="divide-y divide-slate-500/24">
                   {listingEconomics.map((row) => (
                     <tr key={row.listingId}>
                       <td className="px-3 py-2 font-mono">{row.listingId}</td>
@@ -139,7 +139,7 @@ export function DashboardPanel({
         </details>
       </GlassCard>
 
-      <div className="glass-surface rounded-xl px-3 py-2 text-xs text-slate-700">
+      <div className="glass-surface text-theme-muted rounded-xl px-3 py-2 text-xs">
         Hostify key: {maskedKey ?? "Not set"}
       </div>
     </div>

@@ -9,7 +9,7 @@ export default async function LoginPage() {
   if (!hasSupabaseEnv()) {
     return (
       <main className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-lg border border-amber-400/40 bg-amber-50/82 p-6 text-sm text-amber-900">
+        <div className="w-full max-w-xl rounded-lg border border-amber-400/40 bg-amber-100/14 p-6 text-sm text-amber-200">
           <p className="font-semibold">Supabase is not configured.</p>
           <p className="mt-2">
             Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to

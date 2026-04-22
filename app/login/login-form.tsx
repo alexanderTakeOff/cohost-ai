@@ -107,7 +107,7 @@ export function LoginForm() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-500/30 bg-slate-100/82 p-4 text-xs text-slate-700">
+      <div className="surface-subtle rounded-xl p-4 text-xs">
         <p className="font-medium">Closed beta scope</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>Up to {CLOSED_BETA_MAX_TENANTS} client accounts during beta.</li>
@@ -163,7 +163,7 @@ export function LoginForm() {
           <button
             type="submit"
             value="signup"
-            className="rounded-xl border border-slate-500/35 bg-slate-100/78 px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="control-neutral rounded-xl px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Please wait..." : "Sign up"}

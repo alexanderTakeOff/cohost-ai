@@ -40,7 +40,7 @@ function TabButton({
       className={`rounded-xl px-3 py-2 text-sm font-medium transition duration-200 ${
         active
           ? "accent-pill shadow-[0_10px_24px_rgba(80,72,134,0.2)]"
-          : "border border-slate-500/35 bg-slate-100/82 text-slate-700 transition duration-200 hover:bg-slate-100 hover:text-slate-900"
+          : "control-neutral transition duration-200"
       }`}
     >
       {children}
@@ -50,7 +50,7 @@ function TabButton({
 
 function FormNotice({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-500/35 bg-slate-100/82 px-3 py-2 text-xs text-slate-700">
+    <div className="surface-subtle rounded-xl px-3 py-2 text-xs">
       {children}
     </div>
   );
@@ -86,8 +86,8 @@ export function OnboardingForm({
     <div className="space-y-5 fade-in-up">
       {tenant ? (
         <div className="glass-surface rounded-2xl p-4 text-sm">
-          <p className="text-xs text-slate-600">Current settings</p>
-          <div className="mt-3 space-y-2 text-slate-700">
+          <p className="text-theme-soft text-xs">Current settings</p>
+          <div className="text-theme-muted mt-3 space-y-2">
             <p>
               Hostify customer id:{" "}
               <span className="font-medium">{tenant.hostify_customer_id ?? "Not connected yet"}</span>
@@ -152,7 +152,7 @@ export function OnboardingForm({
               <button
                 type="button"
                 onClick={() => setIsAccountEditorOpen(true)}
-                className="rounded-full border border-slate-500/35 bg-slate-100/85 px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-100"
+                className="control-neutral rounded-full px-4 py-2 text-sm font-medium transition"
               >
                 Edit account settings
               </button>
@@ -162,7 +162,7 @@ export function OnboardingForm({
           {isAccountEditorOpen ? (
             <form action={action} className="space-y-6">
               {tenant?.hostify_customer_id ? (
-                <div className="rounded-xl border border-slate-500/35 bg-slate-100/82 p-3 text-xs text-slate-700">
+                <div className="surface-subtle rounded-xl p-3 text-xs">
                   This tenant is currently linked to Hostify account{" "}
                   <span className="font-mono">{tenant.hostify_customer_id}</span>
                   {tenant.hostify_customer_name ? (
@@ -189,7 +189,7 @@ export function OnboardingForm({
                   placeholder="Paste your Hostify API key"
                   className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
                 />
-                <p className="text-xs text-slate-600">
+                <p className="text-theme-soft text-xs">
                   {hostifyRequired
                     ? "Required for first setup."
                     : "Optional: leave empty to keep the existing key and save other changes only."}
@@ -209,7 +209,7 @@ export function OnboardingForm({
                   placeholder="e.g. -1001234567890"
                   className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
                 />
-                <p className="text-xs text-slate-600">
+                <p className="text-theme-soft text-xs">
                   Optional numeric chat id from Telegram (can include a leading minus). If empty, tenant-facing
                   Telegram messages should be routed by n8n to the configured internal fallback chat.
                 </p>
@@ -228,7 +228,7 @@ export function OnboardingForm({
                   <option value="draft">Draft (manual approve)</option>
                   <option value="autopilot">Autopilot (auto send)</option>
                 </select>
-                <p className="text-xs text-slate-600">
+                <p className="text-theme-soft text-xs">
                   Start in draft mode for beta. Switch to autopilot only after checking monitoring activity and listing
                   coverage.
                 </p>
@@ -256,7 +256,7 @@ export function OnboardingForm({
                 <button
                   type="button"
                   onClick={() => setIsAccountEditorOpen(false)}
-                  className="rounded-full border border-slate-500/35 bg-slate-100/85 px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-100"
+                  className="control-neutral rounded-full px-4 py-2 text-sm font-medium transition"
                 >
                   Cancel
                 </button>
@@ -281,10 +281,10 @@ export function OnboardingForm({
           </FormNotice>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-600">
+              <p className="text-theme-soft text-xs uppercase tracking-wide">
                 Listings
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="text-theme-soft mt-1 text-xs">
                 Pulled from Hostify by your API key. Route matching uses the webhook listing ID, while this table is
                 your operator control surface for enable or disable decisions.
               </p>
@@ -293,7 +293,7 @@ export function OnboardingForm({
               <button
                 type="submit"
                 disabled={isRefreshing}
-                className="rounded-xl border border-slate-500/35 bg-slate-100/85 px-3 py-2 text-xs font-medium text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="control-neutral rounded-xl px-3 py-2 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isRefreshing ? "Refreshing..." : "Refresh listings"}
               </button>
@@ -301,14 +301,14 @@ export function OnboardingForm({
           </div>
 
           {listings.length === 0 ? (
-            <p className="rounded-xl border border-slate-500/35 bg-slate-100/82 px-3 py-2 text-xs text-slate-700">
+            <p className="surface-subtle rounded-xl px-3 py-2 text-xs">
               No listings synced yet. Save account settings first, then refresh listings to confirm what will be
               available for beta testing.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-500/35 bg-slate-100/72">
-              <table className="min-w-full divide-y divide-slate-200 text-xs text-slate-900">
-                <thead className="bg-slate-200/85">
+            <div className="surface-subtle overflow-x-auto rounded-xl">
+              <table className="min-w-full divide-y divide-slate-500/35 text-xs text-theme">
+                <thead className="bg-slate-500/20">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Status</th>
                     <th className="px-3 py-2 text-left font-medium">Listing</th>
@@ -317,7 +317,7 @@ export function OnboardingForm({
                     <th className="px-3 py-2 text-left font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/65">
+                <tbody className="divide-y divide-slate-500/35">
                   {listings.map((listing) => (
                     <tr key={listing.id}>
                       <td className="px-3 py-2">
@@ -345,7 +345,7 @@ export function OnboardingForm({
                           <button
                             type="submit"
                             disabled={isToggling}
-                            className="rounded-lg border border-slate-500/35 bg-slate-100/85 px-2 py-1 font-medium text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="control-neutral rounded-lg px-2 py-1 font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {listing.active ? "Disable" : "Enable"}
                           </button>
@@ -372,7 +372,7 @@ export function OnboardingForm({
           ) : null}
         </div>
       ) : activeTab === "listings" ? (
-        <div className="rounded-xl border border-black/25 bg-amber-50/80 p-4 text-sm text-amber-900">
+        <div className="surface-subtle rounded-xl p-4 text-sm">
           Save the Account tab first so Hostify access is stored, then return here to sync and review listings.
         </div>
       ) : null}
@@ -396,7 +396,7 @@ export function OnboardingForm({
               placeholder="Add global behavior notes for the assistant for this tenant."
               className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
             />
-            <p className="text-xs text-slate-600">
+            <p className="text-theme-soft text-xs">
               Applies across all listings for this tenant. Listing-specific notes should remain in Hostify.
             </p>
           </div>
@@ -447,7 +447,7 @@ export function OnboardingForm({
               defaultValue={tenant?.labor_hourly_rate_usd ?? 0}
               className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
             />
-            <p className="text-xs text-slate-600">
+            <p className="text-theme-soft text-xs">
               Used for estimated labor savings calculation.
             </p>
           </div>
@@ -465,7 +465,7 @@ export function OnboardingForm({
               defaultValue={tenant?.avg_handle_minutes_per_message ?? 0}
               className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
             />
-            <p className="text-xs text-slate-600">
+            <p className="text-theme-soft text-xs">
               Interpreted as manual work replaced by each AI reply.
             </p>
           </div>

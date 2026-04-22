@@ -78,10 +78,10 @@ export default async function Home({ searchParams }: HomePageProps) {
         <header className="glass-surface-strong fade-in-up space-y-4 p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="text-theme text-2xl font-semibold tracking-tight sm:text-3xl">
                 {PRODUCT_NAME} Workspace
               </h1>
-              <p className="text-sm text-slate-700">
+              <p className="text-theme-muted text-sm">
                 Modern control plane for onboarding and runtime monitoring in one place.
               </p>
             </div>
@@ -91,18 +91,18 @@ export default async function Home({ searchParams }: HomePageProps) {
                   {CLOSED_BETA_LABEL}
                 </span>
                 <details className="relative">
-                  <summary className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-slate-500/35 bg-slate-100/85 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
+                  <summary className="control-neutral inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-xs font-semibold transition">
                     i
                   </summary>
-                  <div className="absolute right-0 top-8 z-10 w-64 rounded-xl border border-slate-500/35 bg-slate-100/95 p-3 text-xs text-slate-800 shadow-[0_12px_30px_rgba(30,41,59,0.18)]">
+                  <div className="surface-subtle-strong absolute right-0 top-8 z-10 w-64 rounded-xl p-3 text-xs shadow-[0_12px_30px_rgba(7,10,19,0.4)]">
                     <p className="font-medium">{formatClosedBetaSummary()}</p>
-                    <p className="mt-1 text-slate-600">
+                    <p className="text-theme-soft mt-1">
                       Draft mode is recommended first. Expand to autopilot after controlled validation.
                     </p>
                   </div>
                 </details>
                 {userEmail ? (
-                  <span className="inline-flex h-9 max-w-[60vw] items-center truncate rounded-full border border-slate-500/35 bg-slate-100/80 px-4 text-xs text-slate-700 sm:max-w-[260px]">
+                  <span className="control-neutral inline-flex h-9 max-w-[60vw] items-center truncate rounded-full px-4 text-xs sm:max-w-[260px]">
                     {userEmail}
                   </span>
                 ) : null}
@@ -110,7 +110,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                   <form action={signOut}>
                     <button
                       type="submit"
-                      className="inline-flex h-9 items-center rounded-full border border-slate-500/40 bg-slate-100/75 px-4 text-xs font-semibold text-slate-800 transition hover:bg-slate-100"
+                      className="control-neutral inline-flex h-9 items-center rounded-full px-4 text-xs font-semibold transition"
                     >
                       Log out
                     </button>
@@ -122,7 +122,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         </header>
 
         {!isSupabaseConfigured ? (
-          <div className="glass-surface rounded-xl bg-amber-50/80 p-4 text-sm text-amber-900">
+          <div className="surface-subtle rounded-xl p-4 text-sm">
             Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables to
             enable authentication.
           </div>
@@ -133,10 +133,10 @@ export default async function Home({ searchParams }: HomePageProps) {
             {activeTab === "overview" ? (
               <div className="grid gap-4">
                 <GlassCard title="How to connect Jenny">
-                  <p className="text-xs text-slate-700">
+                  <p className="text-theme-muted text-xs">
                     Connect in minutes:
                   </p>
-                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-slate-700">
+                  <ol className="text-theme-muted mt-2 list-decimal space-y-1 pl-5 text-xs">
                     <li>Open Hostify -&gt; Settings.</li>
                     <li>Copy your API key.</li>
                     <li>
@@ -150,10 +150,10 @@ export default async function Home({ searchParams }: HomePageProps) {
                       and click Save.
                     </li>
                   </ol>
-                  <p className="mt-2 text-xs text-slate-700">
+                  <p className="text-theme-muted mt-2 text-xs">
                     Done. Jenny, your new assistant, starts replying to guests automatically.
                   </p>
-                  <p className="mt-2 text-xs text-slate-600">
+                  <p className="text-theme-soft mt-2 text-xs">
                     Telegram chat ID is optional. If not configured, internal alerts can be routed to your fallback
                     Telegram channel in n8n.
                   </p>
@@ -164,7 +164,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                     Learn more about Jenny assistant
                   </Link>
                   {!isEmailConfirmed ? (
-                    <p className="mt-3 text-xs text-amber-800">
+                    <p className="mt-3 text-xs text-[#f8c37a]">
                       Email confirmation may still be required in Supabase Auth settings.
                     </p>
                   ) : null}
@@ -195,7 +195,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           </div>
         ) : (
           <GlassCard className="fade-in-up" title="Sign in required">
-            <p className="text-sm text-slate-700">
+            <p className="text-theme-muted text-sm">
               Sign in to continue onboarding and monitor runtime health in the workspace tabs.
             </p>
             <Link
