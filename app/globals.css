@@ -7,6 +7,10 @@
   --glass-fill: rgba(243, 245, 252, 0.66);
   --glass-fill-strong: rgba(236, 239, 247, 0.82);
   --accent-violet: #8d86f6;
+  --accent-violet-soft: rgba(141, 134, 246, 0.14);
+  --accent-violet-border: rgba(141, 134, 246, 0.48);
+  --text-muted: #465064;
+  --text-soft: #667089;
   --violet-shadow: 0 12px 30px rgba(80, 72, 134, 0.16);
 }
 
@@ -81,6 +85,46 @@ body::before {
 
 .fade-in-up {
   animation: fade-up 0.4s ease-out both;
+}
+
+.text-theme {
+  color: var(--foreground);
+}
+
+.text-theme-muted {
+  color: var(--text-muted);
+}
+
+.text-theme-soft {
+  color: var(--text-soft);
+}
+
+.accent-link {
+  color: #5d51dd;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-violet-border);
+  text-underline-offset: 2px;
+}
+
+.accent-link:hover {
+  color: #4f44cf;
+}
+
+.accent-pill {
+  border: 1px solid var(--accent-violet-border);
+  background: var(--accent-violet-soft);
+  color: #5a4ae0;
+}
+
+.field-surface {
+  border: 1px solid rgba(93, 103, 126, 0.4);
+  background: rgba(242, 245, 252, 0.9);
+  color: var(--foreground);
+}
+
+.field-surface:focus {
+  border-color: rgba(93, 81, 221, 0.65);
+  box-shadow: 0 0 0 2px rgba(141, 134, 246, 0.2);
 }
 
 .bg-grid-soft {

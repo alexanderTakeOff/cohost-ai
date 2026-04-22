@@ -96,18 +96,18 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-6 rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/15 dark:bg-black">
+    <div className="glass-surface-strong w-full max-w-md space-y-6 rounded-2xl p-6 text-theme">
       <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+        <p className="text-theme-soft text-xs font-medium uppercase tracking-[0.2em]">
           {CLOSED_BETA_LABEL}
         </p>
         <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-theme-muted text-sm">
           Sign in with email/password or request access for a new beta account.
         </p>
       </div>
 
-      <div className="rounded-md border border-black/10 bg-zinc-50 p-4 text-xs text-zinc-700 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-300">
+      <div className="rounded-xl border border-slate-500/30 bg-slate-100/82 p-4 text-xs text-slate-700">
         <p className="font-medium">Closed beta scope</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>Up to {CLOSED_BETA_MAX_TENANTS} client accounts during beta.</li>
@@ -129,7 +129,7 @@ export function LoginForm() {
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
-            className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+            className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none"
             placeholder="you@example.com"
           />
         </div>
@@ -146,7 +146,7 @@ export function LoginForm() {
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="off"
             required
-            className="w-full rounded-md border border-black/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/25 dark:focus:border-white"
+            className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none"
             placeholder="••••••••"
           />
         </div>
@@ -155,7 +155,7 @@ export function LoginForm() {
           <button
             type="submit"
             value="signin"
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+            className="accent-pill rounded-xl px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Please wait..." : "Sign in"}
@@ -163,7 +163,7 @@ export function LoginForm() {
           <button
             type="submit"
             value="signup"
-            className="rounded-md border border-black/20 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25"
+            className="rounded-xl border border-slate-500/35 bg-slate-100/78 px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Please wait..." : "Sign up"}
@@ -174,15 +174,15 @@ export function LoginForm() {
           <p
             className={
               messageType === "error"
-                ? "text-sm text-red-600 dark:text-red-400"
-                : "text-sm text-emerald-700 dark:text-emerald-300"
+                ? "text-sm text-red-700"
+                : "text-sm text-emerald-700"
             }
           >
             {message}
           </p>
         ) : null}
 
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-theme-soft text-xs">
           Recommended flow: sign in if you already have access, then complete onboarding in draft mode first.
         </p>
       </form>

@@ -39,7 +39,7 @@ function TabButton({
       onClick={onClick}
       className={`rounded-xl px-3 py-2 text-sm font-medium transition duration-200 ${
         active
-          ? "border border-violet-400/45 bg-violet-500/16 text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)]"
+          ? "accent-pill shadow-[0_10px_24px_rgba(80,72,134,0.2)]"
           : "border border-slate-500/35 bg-slate-100/82 text-slate-700 transition duration-200 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
@@ -187,7 +187,7 @@ export function OnboardingForm({
                   required={hostifyRequired}
                   minLength={12}
                   placeholder="Paste your Hostify API key"
-                  className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                  className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
                 />
                 <p className="text-xs text-slate-600">
                   {hostifyRequired
@@ -207,7 +207,7 @@ export function OnboardingForm({
                   inputMode="numeric"
                   defaultValue={tenant?.telegram_chat_id ?? ""}
                   placeholder="e.g. -1001234567890"
-                  className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                  className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
                 />
                 <p className="text-xs text-slate-600">
                   Optional numeric chat id from Telegram (can include a leading minus). If empty, tenant-facing
@@ -223,7 +223,7 @@ export function OnboardingForm({
                   id="mode"
                   name="mode"
                   defaultValue={tenant?.mode ?? "draft"}
-                  className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                  className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
                 >
                   <option value="draft">Draft (manual approve)</option>
                   <option value="autopilot">Autopilot (auto send)</option>
@@ -249,7 +249,7 @@ export function OnboardingForm({
                   onClick={() => {
                     setIsAccountEditorOpen(false);
                   }}
-                  className="rounded-full border border-violet-400/45 bg-violet-500/16 px-4 py-2 text-sm font-medium text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-violet-500/22 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="accent-pill rounded-full px-4 py-2 text-sm font-medium shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-[var(--accent-violet-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? "Saving..." : "Save account settings"}
                 </button>
@@ -281,10 +281,10 @@ export function OnboardingForm({
           </FormNotice>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-violet-900/60">
+              <p className="text-xs uppercase tracking-wide text-slate-600">
                 Listings
               </p>
-              <p className="mt-1 text-xs text-violet-900/75">
+              <p className="mt-1 text-xs text-slate-600">
                 Pulled from Hostify by your API key. Route matching uses the webhook listing ID, while this table is
                 your operator control surface for enable or disable decisions.
               </p>
@@ -301,12 +301,12 @@ export function OnboardingForm({
           </div>
 
           {listings.length === 0 ? (
-            <p className="rounded-xl border border-black/25 bg-white/60 px-3 py-2 text-xs text-violet-900/80">
+            <p className="rounded-xl border border-slate-500/35 bg-slate-100/82 px-3 py-2 text-xs text-slate-700">
               No listings synced yet. Save account settings first, then refresh listings to confirm what will be
               available for beta testing.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-black/25 bg-white/60">
+            <div className="overflow-x-auto rounded-xl border border-slate-500/35 bg-slate-100/72">
               <table className="min-w-full divide-y divide-slate-200 text-xs text-slate-900">
                 <thead className="bg-slate-200/85">
                   <tr>
@@ -394,7 +394,7 @@ export function OnboardingForm({
               maxLength={6000}
               defaultValue={tenant?.global_instructions ?? ""}
               placeholder="Add global behavior notes for the assistant for this tenant."
-              className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+              className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
             />
             <p className="text-xs text-slate-600">
               Applies across all listings for this tenant. Listing-specific notes should remain in Hostify.
@@ -410,7 +410,7 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-xl border border-violet-400/45 bg-violet-500/16 px-4 py-2 text-sm font-medium text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-violet-500/22 disabled:cursor-not-allowed disabled:opacity-50"
+              className="accent-pill rounded-xl px-4 py-2 text-sm font-medium shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-[var(--accent-violet-soft)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save assistant settings"}
             </button>
@@ -445,7 +445,7 @@ export function OnboardingForm({
               min={0}
               step="0.01"
               defaultValue={tenant?.labor_hourly_rate_usd ?? 0}
-              className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+              className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
             />
             <p className="text-xs text-slate-600">
               Used for estimated labor savings calculation.
@@ -463,7 +463,7 @@ export function OnboardingForm({
               min={0}
               step="0.1"
               defaultValue={tenant?.avg_handle_minutes_per_message ?? 0}
-              className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+              className="field-surface w-full rounded-xl px-3 py-2 text-sm outline-none transition"
             />
             <p className="text-xs text-slate-600">
               Interpreted as manual work replaced by each AI reply.
@@ -474,7 +474,7 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isEconomicsPending}
-              className="rounded-xl border border-violet-400/45 bg-violet-500/16 px-4 py-2 text-sm font-medium text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-violet-500/22 disabled:cursor-not-allowed disabled:opacity-50"
+              className="accent-pill rounded-xl px-4 py-2 text-sm font-medium shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-[var(--accent-violet-soft)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isEconomicsPending ? "Saving..." : "Save economics settings"}
             </button>

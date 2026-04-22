@@ -8,8 +8,8 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage() {
   if (!hasSupabaseEnv()) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
-        <div className="w-full max-w-xl rounded-lg border border-amber-400/40 bg-amber-50/80 p-6 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+      <main className="flex flex-1 items-center justify-center p-6">
+        <div className="w-full max-w-xl rounded-lg border border-amber-400/40 bg-amber-50/82 p-6 text-sm text-amber-900">
           <p className="font-semibold">Supabase is not configured.</p>
           <p className="mt-2">
             Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
@@ -28,7 +28,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
+    <main className="flex flex-1 items-center justify-center p-6">
       <LoginForm />
     </main>
   );

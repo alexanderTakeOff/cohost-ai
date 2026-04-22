@@ -87,7 +87,7 @@ export default async function Home({ searchParams }: HomePageProps) {
             </div>
             <div className="ml-auto flex w-full justify-end sm:w-auto">
               <div className="flex w-full flex-col items-end gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-                <span className="inline-flex h-9 items-center rounded-full border border-violet-400/45 bg-violet-500/10 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">
+                <span className="accent-pill inline-flex h-9 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.16em]">
                   {CLOSED_BETA_LABEL}
                 </span>
                 <details className="relative">
@@ -143,7 +143,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                       Paste it in{" "}
                       <Link
                         href="/?tab=onboarding"
-                        className="font-medium text-violet-700 underline decoration-violet-400 underline-offset-2 hover:text-violet-600"
+                        className="accent-link font-medium"
                       >
                         Onboarding page
                       </Link>{" "}
@@ -159,7 +159,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                   </p>
                   <Link
                     href="/beta-guide"
-                    className="mt-3 inline text-xs font-medium text-violet-700 underline decoration-violet-400 underline-offset-2 transition hover:text-violet-600"
+                    className="accent-link mt-3 inline text-xs font-medium transition"
                   >
                     Learn more about Jenny assistant
                   </Link>
@@ -200,7 +200,7 @@ export default async function Home({ searchParams }: HomePageProps) {
             </p>
             <Link
               href="/login"
-              className="mt-3 inline-flex rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02]"
+              className="accent-pill mt-3 inline-flex rounded-xl px-4 py-2 text-sm font-medium transition hover:brightness-[1.03]"
             >
               Open login
             </Link>

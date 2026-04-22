@@ -13,7 +13,7 @@ const TABS: Array<{ key: WorkspaceTab; label: string }> = [
 
 function tabButtonClass(active: boolean) {
   if (active) {
-    return "rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_20px_rgba(99,102,241,0.3)] transition duration-200";
+    return "accent-pill rounded-xl px-4 py-2 text-sm font-medium shadow-[0_8px_20px_rgba(80,72,134,0.2)] transition duration-200";
   }
 
   return "rounded-xl border border-slate-500/35 bg-slate-100/80 px-4 py-2 text-sm text-slate-700 transition duration-200 hover:bg-slate-100 hover:text-slate-900";

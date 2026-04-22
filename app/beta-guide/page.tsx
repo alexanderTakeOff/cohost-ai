@@ -11,13 +11,13 @@ export default function BetaGuidePage() {
         <iframe
           src={GAMMA_GUIDE_URL}
           title="Cohost AI Beta Guide"
-          className="h-[calc(100vh-5.5rem)] min-h-[540px] w-full flex-1 rounded-xl border border-black/35 bg-black/15"
+          className="h-[calc(100vh-5.5rem)] min-h-[540px] w-full flex-1 rounded-xl border border-slate-500/35 bg-slate-100/70"
           loading="lazy"
           allow="fullscreen"
         />
         <Link
           href="/?tab=overview"
-          className="mt-2 inline text-xs font-medium text-violet-700 underline decoration-violet-400 underline-offset-2 transition hover:text-violet-600"
+          className="accent-link mt-2 inline text-xs font-medium"
         >
           Back to workspace overview
         </Link>
