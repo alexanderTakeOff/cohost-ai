@@ -25,9 +25,9 @@ function formatMoneyUsd(value: number) {
 
 function Stat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-xl border border-black/25 bg-white/62 p-4 shadow-[0_8px_20px_rgba(129,140,248,0.12)]">
-      <p className="text-xs text-violet-900/70">{title}</p>
-      <p className="mt-1 text-lg font-semibold text-violet-950">{value}</p>
+    <div className="rounded-xl border border-slate-500/35 bg-slate-100/72 p-4 shadow-[0_8px_20px_rgba(43,52,73,0.14)]">
+      <p className="text-xs text-slate-600">{title}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -95,7 +95,7 @@ export function DashboardPanel({
 
       <GlassCard className="p-0">
         <details className="rounded-xl p-4">
-          <summary className="cursor-pointer text-sm font-medium text-violet-950">
+          <summary className="cursor-pointer text-sm font-medium text-slate-900">
             Resolution path details
           </summary>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -109,13 +109,13 @@ export function DashboardPanel({
 
       <GlassCard className="p-0">
         <details className="rounded-xl p-4">
-          <summary className="cursor-pointer text-sm font-medium text-violet-950">Listing economics</summary>
+          <summary className="cursor-pointer text-sm font-medium text-slate-900">Listing economics</summary>
           {listingEconomics.length === 0 ? (
-            <p className="mt-3 text-sm text-violet-900/75">No listing-level economics data yet.</p>
+            <p className="mt-3 text-sm text-slate-600">No listing-level economics data yet.</p>
           ) : (
-            <div className="mt-3 overflow-x-auto rounded-xl border border-black/25 bg-white/62">
-              <table className="min-w-full divide-y divide-white/70 text-xs text-violet-950">
-                <thead className="bg-indigo-100/55">
+            <div className="mt-3 overflow-x-auto rounded-xl border border-slate-500/35 bg-slate-100/72">
+              <table className="min-w-full divide-y divide-slate-200 text-xs text-slate-900">
+                <thead className="bg-slate-200/80">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Listing ID</th>
                     <th className="px-3 py-2 text-left font-medium">Guest messages</th>
@@ -123,7 +123,7 @@ export function DashboardPanel({
                     <th className="px-3 py-2 text-left font-medium">Cost (USD)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/65">
+                <tbody className="divide-y divide-slate-200/90">
                   {listingEconomics.map((row) => (
                     <tr key={row.listingId}>
                       <td className="px-3 py-2 font-mono">{row.listingId}</td>
@@ -139,7 +139,7 @@ export function DashboardPanel({
         </details>
       </GlassCard>
 
-      <div className="glass-surface rounded-xl px-3 py-2 text-xs text-violet-900/80">
+      <div className="glass-surface rounded-xl px-3 py-2 text-xs text-slate-700">
         Hostify key: {maskedKey ?? "Not set"}
       </div>
     </div>

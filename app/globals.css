@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8f7ff;
-  --foreground: #2e1065;
-  --glass-border: rgba(30, 27, 75, 0.28);
-  --glass-fill: rgba(255, 255, 255, 0.56);
-  --glass-fill-strong: rgba(255, 255, 255, 0.72);
-  --violet-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+  --background: #d2d4e2;
+  --foreground: #242731;
+  --glass-border: rgba(56, 62, 79, 0.32);
+  --glass-fill: rgba(243, 245, 252, 0.66);
+  --glass-fill-strong: rgba(236, 239, 247, 0.82);
+  --accent-violet: #8d86f6;
+  --violet-shadow: 0 12px 30px rgba(80, 72, 134, 0.16);
 }
 
 @theme inline {
@@ -54,10 +55,10 @@ body::before {
   pointer-events: none;
   z-index: -1;
   background-image:
-    radial-gradient(circle at 14% 18%, rgba(167, 139, 250, 0.44), transparent 45%),
-    radial-gradient(circle at 84% 18%, rgba(129, 140, 248, 0.34), transparent 42%),
-    radial-gradient(circle at 52% 82%, rgba(224, 231, 255, 0.75), transparent 46%),
-    linear-gradient(120deg, #f5f3ff 0%, #eae9ff 42%, #f8f7ff 100%);
+    radial-gradient(circle at 16% 18%, rgba(141, 134, 246, 0.22), transparent 45%),
+    radial-gradient(circle at 84% 20%, rgba(138, 149, 174, 0.24), transparent 42%),
+    radial-gradient(circle at 54% 82%, rgba(203, 209, 224, 0.42), transparent 46%),
+    linear-gradient(132deg, #d8dae7 0%, #c9ccdb 52%, #d3d5e1 100%);
   background-size: 180% 180%;
   animation: mesh-shift 22s ease-in-out infinite;
 }
@@ -72,7 +73,7 @@ body::before {
 
 .glass-surface-strong {
   border-radius: 1rem;
-  border: 1px solid rgba(30, 27, 75, 0.33);
+  border: 1px solid rgba(56, 62, 79, 0.4);
   background: var(--glass-fill-strong);
   backdrop-filter: blur(22px);
   box-shadow: var(--violet-shadow);
@@ -85,10 +86,10 @@ body::before {
 .bg-grid-soft {
   background-image: linear-gradient(
       to right,
-      rgba(129, 140, 248, 0.08) 1px,
+      rgba(141, 134, 246, 0.07) 1px,
       transparent 1px
     ),
-    linear-gradient(to bottom, rgba(167, 139, 250, 0.08) 1px, transparent 1px);
+    linear-gradient(to bottom, rgba(124, 132, 154, 0.08) 1px, transparent 1px);
   background-size: 26px 26px;
 }
 

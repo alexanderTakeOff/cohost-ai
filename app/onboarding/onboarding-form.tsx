@@ -39,8 +39,8 @@ function TabButton({
       onClick={onClick}
       className={`rounded-xl px-3 py-2 text-sm font-medium transition duration-200 ${
         active
-          ? "border border-black/25 bg-gradient-to-r from-violet-400 to-indigo-400 text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)]"
-          : "border border-black/25 bg-white/60 text-violet-900/85 hover:bg-white/78 hover:text-violet-950"
+          ? "border border-violet-400/45 bg-violet-500/16 text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)]"
+          : "border border-slate-500/35 bg-slate-100/82 text-slate-700 transition duration-200 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
       {children}
@@ -50,7 +50,7 @@ function TabButton({
 
 function FormNotice({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-black/25 bg-white/60 px-3 py-2 text-xs text-violet-900/80">
+    <div className="rounded-xl border border-slate-500/35 bg-slate-100/82 px-3 py-2 text-xs text-slate-700">
       {children}
     </div>
   );
@@ -86,8 +86,8 @@ export function OnboardingForm({
     <div className="space-y-5 fade-in-up">
       {tenant ? (
         <div className="glass-surface rounded-2xl p-4 text-sm">
-          <p className="text-xs text-violet-900/70">Current settings</p>
-          <div className="mt-3 space-y-2 text-violet-900/85">
+          <p className="text-xs text-slate-600">Current settings</p>
+          <div className="mt-3 space-y-2 text-slate-700">
             <p>
               Hostify customer id:{" "}
               <span className="font-medium">{tenant.hostify_customer_id ?? "Not connected yet"}</span>
@@ -152,7 +152,7 @@ export function OnboardingForm({
               <button
                 type="button"
                 onClick={() => setIsAccountEditorOpen(true)}
-                className="rounded-full border border-black/35 bg-white/72 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-white"
+                className="rounded-full border border-slate-500/35 bg-slate-100/85 px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-100"
               >
                 Edit account settings
               </button>
@@ -162,7 +162,7 @@ export function OnboardingForm({
           {isAccountEditorOpen ? (
             <form action={action} className="space-y-6">
               {tenant?.hostify_customer_id ? (
-                <div className="rounded-xl border border-black/25 bg-white/60 p-3 text-xs text-violet-900/80">
+                <div className="rounded-xl border border-slate-500/35 bg-slate-100/82 p-3 text-xs text-slate-700">
                   This tenant is currently linked to Hostify account{" "}
                   <span className="font-mono">{tenant.hostify_customer_id}</span>
                   {tenant.hostify_customer_name ? (
@@ -187,9 +187,9 @@ export function OnboardingForm({
                   required={hostifyRequired}
                   minLength={12}
                   placeholder="Paste your Hostify API key"
-                  className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                  className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
                 />
-                <p className="text-xs text-violet-900/70">
+                <p className="text-xs text-slate-600">
                   {hostifyRequired
                     ? "Required for first setup."
                     : "Optional: leave empty to keep the existing key and save other changes only."}
@@ -207,9 +207,9 @@ export function OnboardingForm({
                   inputMode="numeric"
                   defaultValue={tenant?.telegram_chat_id ?? ""}
                   placeholder="e.g. -1001234567890"
-                  className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                  className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
                 />
-                <p className="text-xs text-violet-900/70">
+                <p className="text-xs text-slate-600">
                   Optional numeric chat id from Telegram (can include a leading minus). If empty, tenant-facing
                   Telegram messages should be routed by n8n to the configured internal fallback chat.
                 </p>
@@ -223,12 +223,12 @@ export function OnboardingForm({
                   id="mode"
                   name="mode"
                   defaultValue={tenant?.mode ?? "draft"}
-                  className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                  className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
                 >
                   <option value="draft">Draft (manual approve)</option>
                   <option value="autopilot">Autopilot (auto send)</option>
                 </select>
-                <p className="text-xs text-violet-900/70">
+                <p className="text-xs text-slate-600">
                   Start in draft mode for beta. Switch to autopilot only after checking monitoring activity and listing
                   coverage.
                 </p>
@@ -249,14 +249,14 @@ export function OnboardingForm({
                   onClick={() => {
                     setIsAccountEditorOpen(false);
                   }}
-                  className="rounded-full bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-full border border-violet-400/45 bg-violet-500/16 px-4 py-2 text-sm font-medium text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-violet-500/22 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? "Saving..." : "Save account settings"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsAccountEditorOpen(false)}
-                  className="rounded-full border border-black/35 bg-white/72 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-white"
+                  className="rounded-full border border-slate-500/35 bg-slate-100/85 px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-100"
                 >
                   Cancel
                 </button>
@@ -293,7 +293,7 @@ export function OnboardingForm({
               <button
                 type="submit"
                 disabled={isRefreshing}
-                className="rounded-xl border border-black/30 bg-white/70 px-3 py-2 text-xs font-medium text-violet-900 transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-slate-500/35 bg-slate-100/85 px-3 py-2 text-xs font-medium text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isRefreshing ? "Refreshing..." : "Refresh listings"}
               </button>
@@ -307,8 +307,8 @@ export function OnboardingForm({
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-black/25 bg-white/60">
-              <table className="min-w-full divide-y divide-white/65 text-xs text-violet-950">
-                <thead className="bg-indigo-100/50">
+              <table className="min-w-full divide-y divide-slate-200 text-xs text-slate-900">
+                <thead className="bg-slate-200/85">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Status</th>
                     <th className="px-3 py-2 text-left font-medium">Listing</th>
@@ -325,7 +325,7 @@ export function OnboardingForm({
                           className={
                             listing.active
                               ? "rounded-full bg-emerald-100 px-2 py-1 text-emerald-800"
-                              : "rounded-full bg-zinc-200 px-2 py-1 text-zinc-700"
+                              : "rounded-full bg-slate-300 px-2 py-1 text-slate-700"
                           }
                         >
                           {listing.active ? "Enabled" : "Disabled"}
@@ -345,7 +345,7 @@ export function OnboardingForm({
                           <button
                             type="submit"
                             disabled={isToggling}
-                            className="rounded-lg border border-black/30 bg-white/70 px-2 py-1 font-medium text-violet-900 transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-slate-500/35 bg-slate-100/85 px-2 py-1 font-medium text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {listing.active ? "Disable" : "Enable"}
                           </button>
@@ -394,9 +394,9 @@ export function OnboardingForm({
               maxLength={6000}
               defaultValue={tenant?.global_instructions ?? ""}
               placeholder="Add global behavior notes for the assistant for this tenant."
-              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-violet-900/70">
+            <p className="text-xs text-slate-600">
               Applies across all listings for this tenant. Listing-specific notes should remain in Hostify.
             </p>
           </div>
@@ -410,7 +410,7 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-violet-400/45 bg-violet-500/16 px-4 py-2 text-sm font-medium text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-violet-500/22 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save assistant settings"}
             </button>
@@ -445,9 +445,9 @@ export function OnboardingForm({
               min={0}
               step="0.01"
               defaultValue={tenant?.labor_hourly_rate_usd ?? 0}
-              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-violet-900/70">
+            <p className="text-xs text-slate-600">
               Used for estimated labor savings calculation.
             </p>
           </div>
@@ -463,9 +463,9 @@ export function OnboardingForm({
               min={0}
               step="0.1"
               defaultValue={tenant?.avg_handle_minutes_per_message ?? 0}
-              className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+              className="w-full rounded-xl border border-slate-500/35 bg-slate-100/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             />
-            <p className="text-xs text-violet-900/70">
+            <p className="text-xs text-slate-600">
               Interpreted as manual work replaced by each AI reply.
             </p>
           </div>
@@ -474,7 +474,7 @@ export function OnboardingForm({
             <button
               type="submit"
               disabled={isEconomicsPending}
-              className="rounded-xl bg-gradient-to-r from-violet-400 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(129,140,248,0.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-violet-400/45 bg-violet-500/16 px-4 py-2 text-sm font-medium text-violet-900 shadow-[0_10px_24px_rgba(80,72,134,0.2)] transition hover:bg-violet-500/22 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isEconomicsPending ? "Saving..." : "Save economics settings"}
             </button>

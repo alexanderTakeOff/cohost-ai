@@ -1,41 +1,26 @@
 import Link from "next/link";
 
-import { GlassCard } from "@/app/_components/glass-card";
-
 const GAMMA_GUIDE_URL =
   process.env.NEXT_PUBLIC_GAMMA_GUIDE_EMBED_URL?.trim() ||
   "https://gamma.app/embed/your-cohost-guide";
 
 export default function BetaGuidePage() {
   return (
-    <main className="flex flex-1 justify-center px-3 py-7 sm:px-4 sm:py-10">
-      <section className="w-full max-w-3xl space-y-5">
-        <GlassCard
+    <main className="flex min-h-screen flex-1 flex-col px-2 py-2 sm:px-3 sm:py-3">
+      <section className="glass-surface flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl p-2 sm:p-3">
+        <iframe
+          src={GAMMA_GUIDE_URL}
           title="Cohost AI Beta Guide"
-          subtitle="Full walkthrough for setup, onboarding, and safe beta operations."
+          className="h-[calc(100vh-5.5rem)] min-h-[540px] w-full flex-1 rounded-xl border border-black/35 bg-black/15"
+          loading="lazy"
+          allow="fullscreen"
+        />
+        <Link
+          href="/?tab=overview"
+          className="mt-2 inline text-xs font-medium text-violet-700 underline decoration-violet-400 underline-offset-2 transition hover:text-violet-600"
         >
-          <p className="text-xs text-violet-900/80">
-            Set <span className="font-mono">NEXT_PUBLIC_GAMMA_GUIDE_EMBED_URL</span> to your final Gamma embed
-            link when the deck is ready.
-          </p>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-black/25 bg-white/70">
-            <iframe
-              src={GAMMA_GUIDE_URL}
-              title="Cohost AI Beta Guide"
-              className="h-[70vh] min-h-[460px] w-full"
-              loading="lazy"
-              allow="fullscreen"
-            />
-          </div>
-          <div className="mt-4">
-            <Link
-              href="/?tab=overview"
-              className="inline-flex rounded-full border border-black/30 bg-white/70 px-3 py-1.5 text-xs font-medium text-violet-900 transition hover:bg-white"
-            >
-              Back to workspace overview
-            </Link>
-          </div>
-        </GlassCard>
+          Back to workspace overview
+        </Link>
       </section>
     </main>
   );
