@@ -18,7 +18,7 @@ export function OnboardingPanel({
         subtitle="Save account settings, refresh listings, then switch to autopilot only after monitoring looks healthy."
       >
         <ol className="list-decimal space-y-1 pl-5 text-xs text-violet-900/85">
-          <li>Add Hostify key and Telegram chat ID.</li>
+          <li>Add Hostify key (Telegram chat ID is optional).</li>
           <li>Refresh listings and enable only what you will test.</li>
           <li>Review monitoring counters before wider rollout.</li>
         </ol>

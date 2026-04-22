@@ -228,3 +228,20 @@ Track every production-facing n8n change with enough detail to audit and roll ba
   - Apply guide created at `docs/ops/n8n/A5_APPLY_GUIDE.md`
 - Rollback reference:
   - Keep current workflow version untouched; apply artifact in draft first, then promote after smoke test.
+
+- Date (UTC): 2026-04-16
+- Operator: Cursor
+- Workflow: `cohost-tenant-sync`
+- Node(s): `forward message to Telegram`, `Guest_Alerts_Tool`, `Team_Messages_Tool` (artifact update only)
+- Change summary:
+  - Updated A5 workflow patch artifact to make tenant-facing Telegram delivery resilient when `runtime_config.telegramChatId` is empty.
+  - Added fallback chat expression in tenant-facing Telegram nodes:
+    - `{{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}`
+  - Updated A5 apply guide and smoke tests for optional-telegram behavior.
+- Reason:
+  - Keep onboarding conversion high by making Telegram optional while preventing runtime workflow failures for alert/tool messaging.
+- Verification:
+  - Verified artifact contains fallback expression in all three tenant-facing Telegram nodes.
+  - Verified apply guide includes required new n8n variable and optional-telegram smoke cases.
+- Rollback reference:
+  - Revert to previous A5 artifact/apply guide revision and use tenant-only `runtime_config.telegramChatId` mapping.

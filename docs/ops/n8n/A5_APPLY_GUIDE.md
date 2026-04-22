@@ -7,6 +7,7 @@ This step removes tenant Telegram hardcodes from workflow nodes and routes tenan
 For runtime message processing:
 
 - tenant-facing Telegram nodes use `runtime_config.telegramChatId`
+- if `runtime_config.telegramChatId` is empty, tenant-facing Telegram nodes fall back to `{{$vars.JENNY_TENANT_FALLBACK_CHAT_ID}}`
 - platform-owner alerts stay isolated in dedicated global channels
 - hardcoded chat IDs are removed from workflow JSON
 
@@ -20,12 +21,13 @@ Set these in n8n variables before activation:
 
 - `JENNY_OWNER_ALERT_CHAT_ID` — global owner incident chat
 - `JENNY_GLOBAL_INSTRUCTIONS_CHAT_ID` — global instructions source chat
+- `JENNY_TENANT_FALLBACK_CHAT_ID` — internal fallback chat used when tenant Telegram is not configured
 
 ## Node mapping in this patch
 
-- `forward message to Telegram` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}`
-- `Guest_Alerts_Tool` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}`
-- `Team_Messages_Tool` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId }}`
+- `forward message to Telegram` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}`
+- `Guest_Alerts_Tool` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}`
+- `Team_Messages_Tool` -> `chatId = {{ $('Normalize_Runtime_Config').first().json.runtime_config.telegramChatId || $vars.JENNY_TENANT_FALLBACK_CHAT_ID }}`
 - `Error` -> `chatId = {{$vars.JENNY_OWNER_ALERT_CHAT_ID}}`
 - `Global_Instructions_Tool` -> `chatId = {{$vars.JENNY_GLOBAL_INSTRUCTIONS_CHAT_ID}}`
 
@@ -40,13 +42,16 @@ Set these in n8n variables before activation:
 ## Smoke test checklist
 
 1. Webhook event with mapped listing:
-   - `Normalize_Runtime_Config` returns non-empty `runtime_config.telegramChatId`.
+   - `Normalize_Runtime_Config` returns runtime config successfully (telegram can be `null`).
 2. Tenant path:
-   - `forward message to Telegram` sends to tenant chat (not global).
+   - With tenant chat configured: `forward message to Telegram` sends to tenant chat.
+   - Without tenant chat configured: `forward message to Telegram` sends to fallback chat `JENNY_TENANT_FALLBACK_CHAT_ID`.
 3. Agent escalation:
-   - `Guest_Alerts_Tool` posts into tenant chat.
+   - With tenant chat configured: `Guest_Alerts_Tool` posts into tenant chat.
+   - Without tenant chat configured: `Guest_Alerts_Tool` posts into fallback chat.
 4. Team assistant path:
-   - `Team_Messages_Tool` posts into tenant chat/thread.
+   - With tenant chat configured: `Team_Messages_Tool` posts into tenant chat/thread.
+   - Without tenant chat configured: `Team_Messages_Tool` posts into fallback chat/thread.
 5. Error path:
    - `Error` alert still goes to owner alert channel.
 

@@ -132,12 +132,28 @@ export default async function Home({ searchParams }: HomePageProps) {
 
             {activeTab === "overview" ? (
               <div className="grid gap-4">
-                <GlassCard title="Suggested flow">
+                <GlassCard title="How to connect Jenny">
+                  <p className="text-xs text-violet-900/85">
+                    Connect in minutes:
+                  </p>
                   <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-violet-900/85">
-                    <li>Complete Account and Listings in Onboarding.</li>
-                    <li>Keep Draft mode while testing message flow.</li>
-                    <li>Review Monitoring counters before enabling Autopilot.</li>
+                    <li>Open Hostify -&gt; Settings.</li>
+                    <li>Copy your API key.</li>
+                    <li>Paste it in Onboarding and click Save.</li>
                   </ol>
+                  <p className="mt-2 text-xs text-violet-900/85">
+                    Done. Jenny, your new assistant, starts replying to guests automatically.
+                  </p>
+                  <p className="mt-2 text-xs text-violet-900/80">
+                    Telegram chat ID is optional. If not configured, internal alerts can be routed to your fallback
+                    Telegram channel in n8n.
+                  </p>
+                  <Link
+                    href="/beta-guide"
+                    className="mt-3 inline-flex rounded-full border border-black/30 bg-white/70 px-3 py-1.5 text-xs font-medium text-violet-900 transition hover:bg-white"
+                  >
+                    Open full setup guide
+                  </Link>
                   {!isEmailConfirmed ? (
                     <p className="mt-3 text-xs text-amber-800">
                       Email confirmation may still be required in Supabase Auth settings.

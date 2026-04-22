@@ -28,6 +28,10 @@ Then fill in:
 - `HOSTIFY_KEY_ENCRYPTION_SECRET`
 - `N8N_WEBHOOK_URL`
 - `N8N_WEBHOOK_SECRET`
+- `JENNY_TENANT_FALLBACK_CHAT_ID` (optional for app, required in n8n if tenant Telegram is left empty)
+- `NEXT_PUBLIC_GAMMA_GUIDE_EMBED_URL` (optional, embed URL for `/beta-guide`)
+- `CLOSED_BETA_MIN_ACTIVE_LISTINGS` (optional, default: 1)
+- `CLOSED_BETA_MAX_ACTIVE_LISTINGS` (optional, default: 30)
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -43,7 +47,7 @@ Auth and MVP pages:
 Current product assumptions for the closed beta:
 
 - up to 10 client accounts
-- up to 30 active listings per client in the control plane
+- between 1 and 30 active listings per client in the control plane (both bounds configurable via env vars)
 - free during beta
 - draft mode recommended first, autopilot only after controlled validation
 
@@ -70,6 +74,11 @@ n8n can post events back to:
 - `POST /api/n8n/tenant-events`
 
 with the same signature header format.
+
+Telegram note:
+
+- `telegram_chat_id` in onboarding is optional.
+- If it is empty, n8n should route tenant-facing Telegram messages to `JENNY_TENANT_FALLBACK_CHAT_ID`.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

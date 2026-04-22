@@ -198,21 +198,20 @@ export function OnboardingForm({
 
               <div className="space-y-2">
                 <label htmlFor="telegramChatId" className="block text-sm font-medium">
-                  Telegram chat id
+                  Telegram chat id (optional)
                 </label>
                 <input
                   id="telegramChatId"
                   name="telegramChatId"
                   type="text"
-                  required
                   inputMode="numeric"
                   defaultValue={tenant?.telegram_chat_id ?? ""}
                   placeholder="e.g. -1001234567890"
                   className="w-full rounded-xl border border-black/30 bg-white/82 px-3 py-2 text-sm text-violet-950 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
                 />
                 <p className="text-xs text-violet-900/70">
-                  Numeric chat id from Telegram (can include a leading minus). This is where operator-visible alerts and
-                  assistant outputs are routed for this client.
+                  Optional numeric chat id from Telegram (can include a leading minus). If empty, tenant-facing
+                  Telegram messages should be routed by n8n to the configured internal fallback chat.
                 </p>
               </div>
 

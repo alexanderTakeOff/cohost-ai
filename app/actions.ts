@@ -53,21 +53,15 @@ export async function saveOnboarding(
   void _prevState;
   try {
     const hostifyApiKey = getFormValue(formData, "hostifyApiKey");
-    const telegramChatId = getFormValue(formData, "telegramChatId");
+    const telegramChatIdRaw = getFormValue(formData, "telegramChatId");
+    const telegramChatId = telegramChatIdRaw || null;
     const mode = getFormValue(formData, "mode") as TenantMode;
     const globalInstructionsRaw = formData.get("globalInstructions");
     const globalInstructions =
       typeof globalInstructionsRaw === "string" ? globalInstructionsRaw.slice(0, 6000) : "";
     const saveScope = getFormValue(formData, "saveScope");
 
-    if (!telegramChatId) {
-      return {
-        error: "Telegram chat id is required.",
-        success: null,
-      };
-    }
-
-    if (!isLikelyTelegramChatId(telegramChatId)) {
+    if (telegramChatId && !isLikelyTelegramChatId(telegramChatId)) {
       return {
         error: "Telegram chat id must be numeric (example: -1001234567890).",
         success: null,
